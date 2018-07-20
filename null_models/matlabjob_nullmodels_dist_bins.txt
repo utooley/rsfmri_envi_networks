@@ -1,0 +1,7 @@
+#!/bin/bash
+#
+
+$SUBJ=$1
+$OUT_DIR=$2
+
+matlab -nodisplay -r "net_meas_for_subjs_signed_dist_bins($1);export(padcat(avgclustco_both_0to1_longestnull,avgweight_0to1_longestnull,avgclustco_both_1to2_longestnull,avgweight_1to2_longestnull,avgclustco_both_2to3_longestnull,avgweight_2to3_longestnull,avgclustco_both_3to4_longestnull,avgweight_3to4_longestnull,avgclustco_both_4to5_longestnull,avgweight_4to5_longestnull,avgclustco_both_5to6_longestnull,avgweight_5to6_longestnull,avgclustco_both_6to7_longestnull,avgweight_6to7_longestnull,avgclustco_both_7to8_longestnull,avgweight_7to8_longestnull,avgclustco_both_8to9_longestnull,avgweight_8to9_longestnull,avgclustco_both_9to10_longestnull,avgweight_9to10_longestnull),fullfile('$2',strcat(num2str($1),'_null_models_100x.txt')),'Delimiter',',');exit;"

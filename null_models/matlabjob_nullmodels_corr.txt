@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+#$ -cwd
+#$ -V
+#$ -l h_vmem=8.5,s_vmem= 8G
+
+$SUBJ=$1
+$OUT_DIR=$2
+
+matlab -nodisplay -r "net_meas_for_subjs_signed($1);export(padcat(avgweight_null1,avgweight_null2,avgclustco_both_null1,avgclustco_both_null2),fullfile('$2',strcat(num2str($1),'_null_models_100x.txt')),'Delimiter',',');exit;"

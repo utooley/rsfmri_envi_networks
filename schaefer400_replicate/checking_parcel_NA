@@ -1,0 +1,7 @@
+SUB_DIR=/data/jag/bassett-lab/tooleyEnviNetworks/subjectLists
+for sub in `cat ${SUB_DIR}/n1015_healthT1RestExclude.txt`;
+do
+echo $sub
+grep -i na /data/jag/bassett-lab/tooleyEnviNetworks/data/rest/restNetwork_schaefer400/Schaefer400Networks/${sub}_Schaefer400_network.txt|head -n1
+#echo
+done

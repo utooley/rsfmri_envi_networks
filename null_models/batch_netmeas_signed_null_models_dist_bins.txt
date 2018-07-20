@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+#$ -cwd
+SCRIPTS_DIR='/data/jag/bassett-lab/tooleyEnviNetworks/scripts'
+OUT_DIR='/data/jag/bassett-lab/tooleyEnviNetworks/analyses/null_models_subjects'
+
+mapfile -t ARRAY < /data/jag/bassett-lab/tooleyEnviNetworks/subjectLists/n1012_healthT1RestExclude_parcels.txt
+#ARRAY=(3818 7887)
+echo Contents of ARRAY: ${ARRAY[@]}
+LENGTH=${#ARRAY[@]}
+echo Num of elements in array: $LENGTH
+
+echo SGE_TASK_ID: $SGE_TASK_ID
+
+# array indecies start at 0, SGE_TASK_ID starts at 1
+INDX=`expr $SGE_TASK_ID - 1`;
+
+if [[ $INDX -ge $LENGTH ]]; then
+ echo Array index greater than number of elements
+else
+ SUBJ=${ARRAY[$INDX]}
+ echo Calling command for $SUBJ:
+ # This is where you call your own command...
+
+$SCRIPTS_DIR/matlabjob_nullmodels_dist_bins.txt $SUBJ $OUT_DIR
+
+fi
