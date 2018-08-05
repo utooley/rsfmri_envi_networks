@@ -15,6 +15,7 @@ require(grid)
 library(gridBase)
 library(ggthemes)
 library(lmtest)
+library(stargazer)
 #not until needed, will mask dplyr select
 library(MASS)
 library(ppcor)
@@ -30,6 +31,7 @@ sublistdir="~/Documents/bassett_lab/tooleyEnviNetworks/subjectLists/"
 qadir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
 clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
 analysis_dir="~/Documents/bassett_lab/tooleyEnviNetworks/analyses/"
+reho_dir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
 
 #get subjlist
 subjlist<-read.csv(paste0(sublistdir,"n1012_healthT1RestExclude_parcels.csv"))
@@ -44,7 +46,6 @@ file3<-read.csv(paste0(qadir, "n1601_RestQAData_20170509.csv"))
 #Get the network stats file with the different clustering coefficients
 file4<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_net_meas_normed3clustcoefs_signed.csv")
 #get the original file with modularity in it
-file4<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_sub_net_meas_signed_witheglob.csv")
 file4<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_sub_net_meas_signed.csv")
 #rename the second column of the network statistics file to be 'scanid' so it matches the other files
 file4<-dplyr::rename(file4, scanid=subjlist_2)
@@ -123,14 +124,13 @@ lrtest(l,l2)
 l2 <- lm(scale(avgclustco_both) ~ scale(ageAtScan1yrs)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+envSEShigh+scale(ageAtScan1yrs)*envSEShigh, data=master)
 summary(l2)
 #make tables
-apa.reg.table(l, filename = "Supp_Table1_APA.doc", table.number = 2)
-sjt.lm(l2, show.std = TRUE, p.zero = TRUE)
+#apa.reg.table(l, filename = "Supp_Table1_APA.doc", table.number = 2)
+#sjt.lm(l2, show.std = TRUE, p.zero = TRUE)
 stargazer(l,l2,l.beta, l2.beta, single.row = TRUE, type="latex", report = "vcstp*", digits = NA)
-print(table)
 
 ##### Null model networks ######
 
-#Get the null models file
+#Get the null models file, made with 02_net_meas_for_subjs_signed_nulls and 04_consolidate_subjs_null_models
 null_dir <- "~/Documents/bassett_lab/tooleyEnviNetworks/analyses/null_models_subjects/"
 file5<-read.csv(paste0(null_dir, "n1012_sub_null_models.csv"))
 file5<-dplyr::rename(file5, scanid=subjlist_2)
@@ -189,6 +189,7 @@ summary(l)
 ##############
 #### FIGURE 3 : YEO SYSTEMS ###
 ##############
+#files from 05_clustco_node_wise
 full_nodewise_clustco<-read.csv(paste0(clustcodir,"n1012_clust_co_nodewise_by_subj.csv"))
 full_nodewise_clustco<-dplyr::rename(full_nodewise_clustco, scanid=subjlist_2)
 full_nodewise_clustco<-right_join(full_nodewise_clustco,master,by="scanid")
@@ -197,7 +198,9 @@ a$id<-gsub("^NZMod_", "", a$id)
 #remove parcel R52 which is low signal
 a<-a[-103,]
 #get a dataframe with each subject with the mean clust co in each system
-full_nodewise_clustco<-select(full_nodewise_clustco, -(avgweight:paredu1cent))
+detach("package:ppcor", unload=TRUE)
+detach("package:MASS", unload=TRUE)
+full_nodewise_clustco<-select(full_nodewise_clustco, -(bblid:paredu1cent))
 b<-t(full_nodewise_clustco)
 colnames(b)<-b[2,]
 b<-b[-(1:2),]
@@ -317,6 +320,7 @@ Fig2_Age_SES_By_Yeo_Sys+ geom_errorbar(data=yeo_betas, aes(ymin=agexses_betas-ag
 #############
 ##### FIGURE 4: REGIONAL EFFECTS #######
 ##################
+#from file 05_clustco_node_wise
 #import data on clustering coef for all nodes for all subjects
 clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
 full_nodewise_clustco<-read.csv(paste0(clustcodir,"n1012_clust_co_nodewise_by_subj.csv"))
@@ -348,8 +352,6 @@ full_nodewise_clustco$envSEShigh[full_nodewise_clustco$envSES >= 0.0178] <- 1
 full_nodewise_clustco$envSEShigh[full_nodewise_clustco$envSES < 0.0178]<- 0
 full_nodewise_clustco$envSEShigh<-factor(full_nodewise_clustco$envSEShigh, labels=c("Low", "High"), ordered=TRUE)
 
-#remove the outlier subj 3815
-#full_nodewise_clustco<-full_nodewise_clustco[full_nodewise_clustco$scanid!=3815,]
 #should potentially be centering the age and envSES variables before looking at interactions
 full_nodewise_clustco$ageAtScan1cent<-(full_nodewise_clustco$ageAtScan1-mean(full_nodewise_clustco$ageAtScan1))
 full_nodewise_clustco$ageAtScan1yrscent<-(full_nodewise_clustco$ageAtScan1yrs-mean(full_nodewise_clustco$ageAtScan1yrs))
@@ -418,8 +420,8 @@ peak_areas_only<- lm(mean_peaks ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanR
 peak_areas_only2<- lm(scale(mean_peaks) ~ scale(ageAtScan1yrscent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1yrscent)*envSEShigh, data=full_nodewise_clustco)
 summary(peak_areas_only)
 #regular visreg plot
-visreg(peak_areas_only, "ageAtScan1yrscent", by ="envSEShigh", main="Mean Clustering Coefficient of Peak Regions",
-       xlab="Age in Years", ylab=" Mean Clustering Coefficient (partial residuals)", strip.names=c("Low SES", "High SES"))
+visreg(peak_areas_only, "ageAtScan1yrs", by ="envSEShigh", main="Mean Clustering Coefficient of Peak Regions",
+       xlab="Age in Years", overlay=TRUE, ylab=" Mean Clustering Coefficient (partial residuals)", strip.names=c("Low SES", "High SES"))
 
 #WRITE OUT A CSV OF BETAS FOR MATLAB PLOTTING ON BRAIN
 outfile<-cbind(NodeWise_Clustco_lm_Age_betas$NodeWise_Clustco_lm_Age_betas, NodeWise_Clustco_lm_AgexSES_betas$NodeWise_Clustco_lm_AgexSES_betas)
@@ -437,9 +439,12 @@ write.csv(outfile, paste0("~/Dropbox (Personal)/bassett_lab/clustco_paper/nodewi
 ##################
 
 #Get the reho file by subject
-file4<-read.csv(paste0(rehodir,"n1601_glasserReHoValues_20170509.csv"))
+file4<-read.csv(paste0(reho_dir,"n1601_glasserReHoValues_20170509.csv"))
 master<-right_join(file4, master, by ="scanid")
 #remove parcel R52 which is missing signal
+#unload ppcor and MASS
+detach("package:ppcor", unload=TRUE)
+detach("package:MASS", unload=TRUE)
 master<-select(master, -rest_glasser_reho_Right_52)
 #average whole-brain reho for each subject
 master <- master %>% rowwise() %>% mutate(mean_reho=mean(rest_glasser_reho_Right_V1:rest_glasser_reho_Left_p24))
@@ -463,7 +468,7 @@ detach("package:MASS", unload=TRUE)
 #get the mean of each node's clustco across subjects
 mean_nodes_clustco<-colMeans(select(full_nodewise_clustco, avgclustco_both_..1:avgclustco_both_359))
 #get the mean of each node's reho across subjects
-mean_nodes_reho<-select(master, rest_glasser_reho_Right_V1:rest_glasser_reho_Left_p24) %>% select(., -rest_glasser_reho_Right_52) %>% colMeans(.)
+mean_nodes_reho<-select(master, rest_glasser_reho_Right_V1:rest_glasser_reho_Left_p24) %>% colMeans(.)
 #write this to a csv
 outfile<-mean_nodes_reho
 write.csv(outfile, paste0("~/Dropbox (Personal)/bassett_lab/clustco_paper/avg_reho_across_nodes.csv"))
@@ -479,10 +484,10 @@ library(ppcor)
 for (i in 1:359){
   clustco=nodewise_clustco[i]
   reho=nodewise_reho[i]
-  temp=cbind(master$ageAtScan1cent,as.factor(master$sex), as.factor(master$race2), master$restRelMeanRMSMotion,as.factor(master$envSEShigh), master$avgweight, clustco,reho)
-  colnames(temp)=c("ageAtScan1cent", "sex", "race2", "restRelMeanRMSMotion", "envSEShigh", "avgweight","clustco", "reho")
-  pvalsforclustco[[i]]<- summary(lm(clustco~ageAtScan1cent+avgweight+race2+sex+restRelMeanRMSMotion+envSEShigh+reho+ageAtScan1cent*envSEShigh, data=temp))$coef[9,4]
-  #temp=cbind(master$ageAtScan1cent,as.factor(master$sex), as.factor(master$race2), master$restRelMeanRMSMotion,master$envSEShigh)
+  #temp=cbind(master$ageAtScan1cent,as.factor(master$sex), as.factor(master$race2), master$restRelMeanRMSMotion,as.factor(master$envSEShigh), master$avgweight, clustco,reho)
+  #colnames(temp)=c("ageAtScan1cent", "sex", "race2", "restRelMeanRMSMotion", "envSEShigh", "avgweight","clustco", "reho")
+  #pvalsforclustco[[i]]<- summary(lm(clustco~ageAtScan1cent+avgweight+race2+sex+restRelMeanRMSMotion+envSEShigh+reho+ageAtScan1cent*envSEShigh, data=temp))$coef[9,4]
+  temp=cbind(master$ageAtScan1cent,as.factor(master$sex), as.factor(master$race2), master$restRelMeanRMSMotion,master$envSEShigh)
   correlationspvals[[i]] <- as.numeric(pcor.test(clustco, reho, temp)$p.value)
 }
 
@@ -498,7 +503,8 @@ correlationspvals <- as.data.frame(correlationspvals)
 
 #LOOK AT EACH NODE FOR AGE EFFECT IN THE LINEAR MODEL
 covariates=" ~ ageAtScan1cent+sex+race2+restRelMeanRMSMotion+envSEShigh"
-m <- mclapply(names(master[,14:372]), function(x) {as.formula(paste(x, covariates, sep=""))},mc.cores=2)
+#check that the names with this dataframe pulls rest_glasser variables
+m <- mclapply(names(master[,3:361]), function(x) {as.formula(paste(x, covariates, sep=""))},mc.cores=2)
 NodeWise_reho_lm_Age_pvals <- mclapply(m, function(x) { summary(lm(formula = x,data=master))$coef[2,4]},mc.cores=1)
 NodeWise_Reho_lm_Age_pvals <- as.data.frame(NodeWise_reho_lm_Age_pvals)
 NodeWise_Reho_lm_Age_pvals <- t(NodeWise_Reho_lm_Age_pvals)
@@ -527,13 +533,15 @@ increases<-NodeWise_Reho_lm_Age_betas[NodeWise_Reho_lm_Age_betas$NodeWise_Reho_l
 
 #LOOK AT EACH NODE FOR AGE*SES EFFECT IN THE LINEAR MODEL
 covariates=" ~ ageAtScan1cent+sex+race2+restRelMeanRMSMotion+envSEShigh+ageAtScan1cent*envSEShigh"
-m <- mclapply(names(master[,1125:1484]), function(x) {as.formula(paste(x, covariates, sep=""))},mc.cores=2)
+m <- mclapply(names(master[,3:361]), function(x) {as.formula(paste(x, covariates, sep=""))},mc.cores=2)
 NodeWise_Reho_lm_AgexSES_pvals <- mclapply(m, function(x) { summary(lm(formula = x,data=master))$coef[8,4]},mc.cores=1)
 NodeWise_Reho_lm_AgexSES_pvals <- as.data.frame(NodeWise_Reho_lm_AgexSES_pvals)
 NodeWise_Reho_lm_AgexSES_pvals <- t(NodeWise_Reho_lm_AgexSES_pvals)
 NodeWise_Reho_lm_AgexSES_pvals <- as.data.frame(NodeWise_Reho_lm_AgexSES_pvals)
 colnames(NodeWise_Reho_lm_AgexSES_pvals) <- "NodeWise_Reho_lm_AgexSES_pvals"
-NodeWise_Reho_lm_AgexSES_pvals$Node_index <- 1:360
+NodeWise_Reho_lm_AgexSES_pvals$Node_index <- 1:359
+detach("package:ppcor", unload=TRUE)
+detach("package:MASS", unload=TRUE)
 names <- colnames(select(master, rest_glasser_reho_Right_V1:rest_glasser_reho_Left_p24))
 NodeWise_Reho_lm_AgexSES_pvals$Names <- names
 #Bonferroni
@@ -561,7 +569,7 @@ write.csv(outfile, paste0("~/Dropbox (Personal)/bassett_lab/clustco_paper/nodewi
 ### FIG 5D ####
 
 #PULL OUT NODES WITH HIGHEST INTERACTION EFFECT, PLOT THESE ONLY
-dim(fdr_sig_nodes_lm_AgexSES)
+dim(fdr_sig_nodes_reho_lm_AgexSES)
 #make node names to pull out from the full matrix
 nodes<-fdr_sig_nodes_lm_AgexSES$Node_index
 
@@ -569,7 +577,7 @@ nodes[1] <- "..8"
 nodes[2:21]=c(".32", ".36", ".37", ".38", ".39", ".40", ".41", ".43", ".53", ".55", ".56", ".57", ".58", ".59", ".60", ".63", ".65", ".76", ".88", ".94")
 node_names<-paste("avgclustco_both_",nodes, sep="")
 #average across all nodes to create one "significant area" per subject
-master <- master %>% mutate(., mean_peaks_reho=rowMeans(select(.,one_of(fdr_sig_nodes_lm_AgexSES$Names))))
+master <- master %>% ungroup(.) %>%  mutate(., mean_peaks_reho=rowMeans(select(.,one_of(fdr_sig_nodes_reho_lm_AgexSES$Names))))
 #analyze and plot
 peak_areas_only<- lm(mean_peaks_reho ~ ageAtScan1yrs+sex+race2+restRelMeanRMSMotion+ageAtScan1yrs*envSEShigh, data=master)
 peak_areas_only2<- lm(scale(mean_peaks_reho) ~ scale(ageAtScan1yrscent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1yrscent)*envSEShigh, data=master)
@@ -580,21 +588,21 @@ visreg(peak_areas_only, "ageAtScan1yrs", by ="envSEShigh", main="Mean Clustering
        line=list(col=c(rgb(28, 147, 255, maxColorValue = 255), rgb(255, 168, 28, maxColorValue = 255))), 
        fill=list(col=c(alpha(rgb(28, 147, 255, maxColorValue = 255), 0.7), alpha(rgb(255, 168, 28, maxColorValue = 255),0.7))))
 
-### REGRESS OUT CLUSTERING OUT FROM REHO, LOOK AT THE EFFECT ACROSS REGIONS ###
-pvalsforreho=numeric(359)
+### REGRESS OUT REHO FROM CLUSTERING, LOOK AT THE EFFECT ACROSS REGIONS
+pvalsforclustco=numeric(359)
 for (i in 1:359){
   clustco=nodewise_clustco[i]
   reho=nodewise_reho[i]
   temp=cbind(master$ageAtScan1cent,as.factor(master$sex), as.factor(master$race2), master$restRelMeanRMSMotion,as.factor(master$envSEShigh), master$avgweight, clustco,reho)
   colnames(temp)=c("ageAtScan1cent", "sex", "race2", "restRelMeanRMSMotion", "envSEShigh", "avgweight","clustco", "reho")
-  temp$residreho <- rstandard(lm(reho~clustco, data=temp))
-  temp$residreho <- mean(temp$reho)+temp$residreho
-  pvalsforreho[[i]]<- summary(lm(residreho~ageAtScan1cent+avgweight+race2+sex+restRelMeanRMSMotion+envSEShigh+ageAtScan1cent*envSEShigh, data=temp))$coef[9,4]
+  temp$residclustco <- resid(lm(clustco~reho, data=temp))
+  #temp$residclustco <- mean(temp$clustco)+temp$residclustco
+  pvalsforclustco[[i]]<- summary(lm(residclustco~ageAtScan1cent+avgweight+race2+sex+restRelMeanRMSMotion+envSEShigh+ageAtScan1cent*envSEShigh, data=temp))$coef[9,4]
 }
 #see if there are any nodes for agexses interaction remains significant when regressed out reho
-sig_nodes <- pvalsforreho[pvalsforreho<0.05]
+sig_nodes <- pvalsforclustco[pvalsforclustco<0.05]
 length(sig_nodes)
-ps <- p.adjust(pvalsforreho, method="fdr")
+ps <- p.adjust(pvalsforclustco, method="fdr")
 ps[ps>0.05] #nope!
 fdr_sig_nodes <- ps[ps<0.05]
 length(fdr_sig_nodes)
@@ -609,7 +617,7 @@ anova(l,l2, test="Chisq")
 ###############
 ### FIGURE 5: DISTANCE DEPENDENCE ###
 ##############
-
+#from files 08_net_meas_for_subjs_distbins_dependence and 09_net_meas_for_subjs_signed_distbins_nulls, 09_consolidate_subjs_nulls_distbins_dependence
 ##DISTANCE
 file7<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_sub_net_meas_signed_distance_bins.csv")
 file7<-dplyr::rename(file7, scanid=subjlist_2)
@@ -625,7 +633,7 @@ x<-cbind(distance_bins_agexses_betas, as.character(m))
 colnames(x) <- c("beta_for_agexses_interaction", "formula")
 write.csv(x, file= "~/Dropbox/bassett_lab/analyses/csv/distance_weight_binned_agexses_betas.csv")
 
-x %>% filter(formula == starts_with("avgweight"))
+x %>% filter(.,formula == starts_with("avgweight"))
 avgweight_only<-x[grep("avgweight*", x$formula),]
 
 # INCLUDE AVERAGE WEIGHT IN EACH MODEL for distance dependence 
@@ -700,12 +708,24 @@ plot(1:10,revers_distance_bins_agexses_null_betas,main="",col="black", xlab="",
 arrows(1:10, as.numeric(revers_distance_bins_agexses_null_betas)-as.numeric(revers_distance_bins_agexses_null_se), 1:10, as.numeric(revers_distance_bins_agexses_null_betas)+as.numeric(revers_distance_bins_agexses_null_se), length=0.05, angle=90, code=3)
 
 ### Betas of edges within and between sig nodes
-
-## SEE MATLAB SCRIPTS??
+# see file 10_make_all_subs_all_edges and 11_averagebetas_within_26_nodes_outside.m
 
 ###############
 ### FIGURE 6: SENSITIVITY ANALYSIS ###
 ##############
+### IMPORT DATA
+# Get demographics to control for
+file1<-read.csv(paste0(subinfodir, "n1601_demographics_go1_20161212.csv"))
+file2<-read.csv(paste0(subinfodir, "n1601_go1_environment_factor_scores_tymoore_20150909.csv"))
+#get the raw environment values to compare across groups
+envdata <- read.csv(paste0(subinfodir, "Census_for_Scores.csv"))
+#Get QA values to include in analyses
+file3<-read.csv(paste0(qadir, "n1601_RestQAData_20170509.csv"))
+#get the original file with modularity in it
+file4<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_sub_net_meas_signed.csv")
+#rename the second column of the network statistics file to be 'scanid' so it matches the other files
+file4<-dplyr::rename(file4, scanid=subjlist_2)
+
 #use LTN exclude critera
 subjlist<-read.csv(paste0(sublistdir,"n885_LTNexclude.csv"))
 #Join all files together
