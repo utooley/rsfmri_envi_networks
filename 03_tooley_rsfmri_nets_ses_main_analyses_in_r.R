@@ -104,7 +104,7 @@ chisq.test(table(master$envSEShigh, master$sex))
 ##########
 ##### Global effects on rs-fMRI topology ####
 ##########
-
+## Files from 01_z_transform_FC_matrices.m and 02_net_meas_for_subjs_signed.m
 ###CLUSTERING####
 
 #linear age effect without interaction
@@ -129,8 +129,8 @@ summary(l2)
 stargazer(l,l2,l.beta, l2.beta, single.row = TRUE, type="latex", report = "vcstp*", digits = NA)
 
 ##### Null model networks ######
+#Get the null models file, made with 02_net_meas_for_subjs_signed_nulls.m and 04_consolidate_subjs_null_models.m
 
-#Get the null models file, made with 02_net_meas_for_subjs_signed_nulls and 04_consolidate_subjs_null_models
 null_dir <- "~/Documents/bassett_lab/tooleyEnviNetworks/analyses/null_models_subjects/"
 file5<-read.csv(paste0(null_dir, "n1012_sub_null_models.csv"))
 file5<-dplyr::rename(file5, scanid=subjlist_2)
@@ -189,7 +189,8 @@ summary(l)
 ##############
 #### FIGURE 3 : YEO SYSTEMS ###
 ##############
-#files from 05_clustco_node_wise
+#files from 05_clustco_node_wise.m
+
 full_nodewise_clustco<-read.csv(paste0(clustcodir,"n1012_clust_co_nodewise_by_subj.csv"))
 full_nodewise_clustco<-dplyr::rename(full_nodewise_clustco, scanid=subjlist_2)
 full_nodewise_clustco<-right_join(full_nodewise_clustco,master,by="scanid")
@@ -320,7 +321,8 @@ Fig2_Age_SES_By_Yeo_Sys+ geom_errorbar(data=yeo_betas, aes(ymin=agexses_betas-ag
 #############
 ##### FIGURE 4: REGIONAL EFFECTS #######
 ##################
-#from file 05_clustco_node_wise
+#from file 05_clustco_node_wise.m 
+
 #import data on clustering coef for all nodes for all subjects
 clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
 full_nodewise_clustco<-read.csv(paste0(clustcodir,"n1012_clust_co_nodewise_by_subj.csv"))
@@ -617,7 +619,8 @@ anova(l,l2, test="Chisq")
 ###############
 ### FIGURE 5: DISTANCE DEPENDENCE ###
 ##############
-#from files 08_net_meas_for_subjs_distbins_dependence and 09_net_meas_for_subjs_signed_distbins_nulls, 09_consolidate_subjs_nulls_distbins_dependence
+#From files 08_net_meas_for_subjs_distbins_dependence.m and 09_net_meas_for_subjs_signed_distbins_nulls.m and 09_consolidate_subjs_nulls_distbins_dependence.m
+
 ##DISTANCE
 file7<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_sub_net_meas_signed_distance_bins.csv")
 file7<-dplyr::rename(file7, scanid=subjlist_2)
@@ -708,7 +711,7 @@ plot(1:10,revers_distance_bins_agexses_null_betas,main="",col="black", xlab="",
 arrows(1:10, as.numeric(revers_distance_bins_agexses_null_betas)-as.numeric(revers_distance_bins_agexses_null_se), 1:10, as.numeric(revers_distance_bins_agexses_null_betas)+as.numeric(revers_distance_bins_agexses_null_se), length=0.05, angle=90, code=3)
 
 ### Betas of edges within and between sig nodes
-# see file 10_make_all_subs_all_edges and 11_averagebetas_within_26_nodes_outside.m
+# see file 10_make_all_subs_all_edges.m and 11_averagebetas_within_26_nodes_outside.m
 
 ###############
 ### FIGURE 6: SENSITIVITY ANALYSIS ###
