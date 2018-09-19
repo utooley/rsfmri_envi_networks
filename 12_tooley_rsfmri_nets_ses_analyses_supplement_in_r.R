@@ -309,3 +309,58 @@ for (i in 1:359){
 }
 plot(mean_nodes_clustco,resid_reho_perregion, col="darkgreen", pch=19)
 cor.test(mean_nodes_clustco, resid_reho_perregion)
+
+##############
+#### SUPP SECTION 4: REMOVAL OF NEGATIVE EDGE WEIGHTS ####
+##############
+
+# ZHANG-HORVATH FORMULA, POSITIVE WEIGHTS ONLY #
+#get net stats calculated on thresholded matrices
+file4<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_sub_net_meas_signed_zhang_horvath.csv")
+
+# ONNELA FORMULA, POSITIVE WEIGHTS ONLY #
+file4<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_sub_net_meas_signed_pos_only_constantini_perugini.csv")
+
+file4<-dplyr::rename(file4, scanid=subjlist_2)
+master<-right_join(file1, subjlist, by ="scanid")
+master<-right_join(file2,master, by="scanid")
+master<-right_join(file3, master, by= "scanid")
+master<-right_join(file4, master, by ="scanid")
+
+### RUN DATA CLEANING SECTION AT THE TOP HERE ##
+
+#linear age effect without interaction
+l <- lm(avgclco_pos ~ ageAtScan1yrs+sex+race2+restRelMeanRMSMotion+avgweight+envSEShigh, data=master)
+summary(l)
+l.beta<- lm.beta(l)
+lmageplot<-visreg(l, "ageAtScan1yrs",
+                  main="Average Clustering Coefficient", xlab="Age in Years (centered)", ylab="Average Clustering Coefficient (partial residuals)")
+
+#linear model med split
+l2 <- lm(avgclco_pos ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
+summary(l2)
+l2.beta <- lm.beta(l2)
+anova(l,l2,test="Chisq")
+
+lrtest(l,l2)
+l2 <- lm(scale(avgclco_pos) ~ scale(ageAtScan1yrs)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+envSEShigh+scale(ageAtScan1yrs)*envSEShigh, data=master)
+summary(l2)
+######MODULARITY######
+
+#linear age effect without interaction
+l <- lm(modul ~ ageAtScan1yrs+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion, data=master)
+summary(l)
+lm.beta(l)
+lmageplot<-visreg(l, "ageAtScan1yrs",
+                  main="Average Clustering Coefficient", xlab="Age in Years (centered)", ylab="Average Clustering Coefficient (partial residuals)")
+
+#linear model med split
+l2 <- lm(modul ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
+summary(l2)
+lm.beta(l2)
+anova(l,l2,test="Chisq")
+
+lrtest(l,l2)
+
+#modularity and clustering are highly correlated
+cor.test(master$modul,master$avgclustco_both,method = "spearman")
