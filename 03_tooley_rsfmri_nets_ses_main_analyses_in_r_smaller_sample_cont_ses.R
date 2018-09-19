@@ -34,7 +34,7 @@ analysis_dir="~/Documents/bassett_lab/tooleyEnviNetworks/analyses/"
 reho_dir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
 
 #get subjlist
-subjlist<-read.csv(paste0(sublistdir,"n1012_healthT1RestExclude_parcels.csv"))
+subjlist<-read.csv(paste0(sublistdir,"n885_LTNexclude.csv"))
 
 # Get demographics to control for
 file1<-read.csv(paste0(subinfodir, "n1601_demographics_go1_20161212.csv"))
@@ -82,9 +82,11 @@ master$ageAtScan1yrscent<-(master$ageAtScan1yrs-mean(master$ageAtScan1yrs))
 #split SES on the median 
 summary(master$envSES)
 master$envSEShigh=NA
-master$envSEShigh[master$envSES >= 0.0178] <- 1
-master$envSEShigh[master$envSES < 0.0178]<- 0
+#split median for LTN sample
+master$envSEShigh[master$envSES >= -0.0613] <- 1
+master$envSEShigh[master$envSES < -0.0613]<- 0
 master$envSEShigh<-factor(master$envSEShigh, labels=c("Low", "High"), ordered=TRUE)
+
 #center
 master$envSEScent<-(master$envSES-mean(master$envSES))
 master$medu1cent=(master$medu1-mean(master$medu1[!is.na(master$medu1)]))
@@ -108,20 +110,20 @@ chisq.test(table(master$envSEShigh, master$sex))
 ###CLUSTERING####
 
 #linear age effect without interaction
-l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+restRelMeanRMSMotion+avgweight+envSEShigh, data=master)
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+restRelMeanRMSMotion+avgweight+envSES, data=master)
 summary(l)
 l.beta<- lm.beta(l)
 lmageplot<-visreg(l, "ageAtScan1yrs",
                   main="Average Clustering Coefficient", xlab="Age in Years (centered)", ylab="Average Clustering Coefficient (partial residuals)")
 
 #linear model med split
-l2 <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
+l2 <- lm(avgclustco_both ~ ageAtScan1yrscent+sex+race2+avgweight+restRelMeanRMSMotion+envSES+ageAtScan1yrscent*envSES, data=master)
 summary(l2)
 l2.beta <- lm.beta(l2)
 anova(l,l2,test="Chisq")
 
 lrtest(l,l2)
-l2 <- lm(scale(avgclustco_both) ~ scale(ageAtScan1yrs)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+envSEShigh+scale(ageAtScan1yrs)*envSEShigh, data=master)
+l2 <- lm(scale(avgclustco_both) ~ scale(ageAtScan1yrs)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(envSES)+scale(ageAtScan1yrs)*scale(envSES), data=master)
 summary(l2)
 #make tables
 #apa.reg.table(l, filename = "Supp_Table1_APA.doc", table.number = 2)
@@ -139,9 +141,9 @@ master_nulls<-right_join(file5, master, by ="scanid")
 #Test the difference
 t.test(master$avgclustco_both, master_nulls$avgclustco_both_null1)
 t.test(master$avgclustco_both, master_nulls$avgclustco_both_null2)
-l <- lm(avgclustco_both_null1~ageAtScan1yrs+sex+race2+avgweight_null1+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrs*envSEShigh, data=master_nulls)
+l <- lm(avgclustco_both_null1~ageAtScan1yrscent+sex+race2+avgweight_null1+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrscent*envSES, data=master_nulls)
 summary(l) 
-l <- lm(avgclustco_both_null2~ageAtScan1yrs+sex+race2+avgweight_null2+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrs*envSEShigh, data=master_nulls)
+l <- lm(avgclustco_both_null2~ageAtScan1yrscent+sex+race2+avgweight_null2+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrscent*envSES, data=master_nulls)
 summary(l)  
 
 #plot it
@@ -157,14 +159,14 @@ ggplot(df, aes(which, value))+ geom_dotplot(binaxis="y", mapping = aes(which, va
 ######MODULARITY######
 
 #linear age effect without interaction
-l <- lm(modul ~ ageAtScan1yrs+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion, data=master)
+l <- lm(modul ~ ageAtScan1yrs+sex+race2+avgweight+envSES+restRelMeanRMSMotion, data=master)
 summary(l)
 lm.beta(l)
 lmageplot<-visreg(l, "ageAtScan1yrs",
                   main="Average Clustering Coefficient", xlab="Age in Years (centered)", ylab="Average Clustering Coefficient (partial residuals)")
 
 #linear model med split
-l2 <- lm(modul ~ ageAtScan1yrs+sex+race2+avgweight.x+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
+l2 <- lm(modul ~ ageAtScan1yrscent+sex+race2+avgweight+restRelMeanRMSMotion+envSES+ageAtScan1yrscent*envSES, data=master)
 summary(l2)
 lm.beta(l2)
 anova(l,l2,test="Chisq")
@@ -175,15 +177,15 @@ lrtest(l,l2)
 cor.test(master$modul,master$avgclustco_both,method = "spearman")
 
 #parsimony for modularity?
-l <- lm(modul ~ ageAtScan1yrs+sex+race2+avgweight.x+avgclustco_both.x+envSEShigh+restRelMeanRMSMotion, data=master)
+l <- lm(modul ~ ageAtScan1yrs+sex+race2+avgweight+avgclustco_both+envSES+restRelMeanRMSMotion, data=master)
 summary(l) #no age effect
-l <- lm(modul ~ ageAtScan1yrs+sex+race2+avgweight.x+avgclustco_both.x+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrs*envSEShigh, data=master)
+l <- lm(modul ~ ageAtScan1yrscent+sex+race2+avgweight+avgclustco_both+envSES+restRelMeanRMSMotion+ageAtScan1yrscent*envSES, data=master)
 summary(l) # no interaction
 
 # #parsimony for clustco?
-l <- lm(avgclustco_both.x ~ ageAtScan1yrs+sex+race2+avgweight.x+modul+envSEShigh+restRelMeanRMSMotion, data=master)
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+modul+envSES+restRelMeanRMSMotion, data=master)
 summary(l)
-l <- lm(avgclustco_both.x ~ ageAtScan1yrs+sex+race2+avgweight.x+modul+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrs*envSEShigh, data=master)
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+modul+envSES+restRelMeanRMSMotion+ageAtScan1yrs*envSES, data=master)
 summary(l)
 
 ##############
@@ -222,25 +224,25 @@ master<-right_join(subject_clustco_yeo_system, master, by ="scanid")
 
 ### FOR AGE BETAS ####
 #Yeo 1
-Yeo1 <- lm(scale(Yeo_1) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+envSEShigh+scale(restRelMeanRMSMotion), data=master)
+Yeo1 <- lm(scale(Yeo_1) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(envSES)+scale(restRelMeanRMSMotion), data=master)
 age_beta_yeo1<-lm.beta(Yeo1)$standardized.coefficients[2]
 #Yeo 2
-Yeo2<- lm(scale(Yeo_2) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+envSEShigh+scale(restRelMeanRMSMotion), data=master)
+Yeo2<- lm(scale(Yeo_2) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(envSES)+scale(restRelMeanRMSMotion), data=master)
 age_beta_yeo2<-lm.beta(Yeo2)$standardized.coefficients[2]
 #Yeo 3
-Yeo3<- lm(scale(Yeo_3) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+envSEShigh+scale(restRelMeanRMSMotion), data=master)
+Yeo3<- lm(scale(Yeo_3) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(envSES)+scale(restRelMeanRMSMotion), data=master)
 age_beta_yeo3<-lm.beta(Yeo3)$standardized.coefficients[2]
 #Yeo 4
-Yeo4<- lm(scale(Yeo_4) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+envSEShigh+scale(restRelMeanRMSMotion), data=master)
+Yeo4<- lm(scale(Yeo_4) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(envSES)+scale(restRelMeanRMSMotion), data=master)
 age_beta_yeo4<-lm.beta(Yeo4)$standardized.coefficients[2]
 #Yeo 5
-Yeo5 <- lm(scale(Yeo_5) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+envSEShigh+scale(restRelMeanRMSMotion), data=master)
+Yeo5 <- lm(scale(Yeo_5) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(envSES)+scale(restRelMeanRMSMotion), data=master)
 age_beta_yeo5<-lm.beta(Yeo5)$standardized.coefficients[2]
 #Yeo 6
-Yeo6 <- lm(scale(Yeo_6) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+envSEShigh+scale(restRelMeanRMSMotion), data=master)
+Yeo6 <- lm(scale(Yeo_6) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(envSES)+scale(restRelMeanRMSMotion), data=master)
 age_beta_yeo6<-lm.beta(Yeo6)$standardized.coefficients[2]
 #Yeo 7
-Yeo7 <- lm(scale(Yeo_7) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+envSEShigh+scale(restRelMeanRMSMotion), data=master)
+Yeo7 <- lm(scale(Yeo_7) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(envSES)+scale(restRelMeanRMSMotion), data=master)
 age_beta_yeo7<-lm.beta(Yeo7)$standardized.coefficients[2]
 
 #write scaled betas to outfile
@@ -257,25 +259,25 @@ write.csv(outfile, paste0(clustcodir, "yeo_network_betas_scaled.csv"))
 
 #### FOR AGE X SES BETAS ######
 #Yeo 1
-Yeo1_scaled <- lm(scale(Yeo_1) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*envSEShigh, data=master)
+Yeo1_scaled <- lm(scale(Yeo_1) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*scale(envSES), data=master)
 summary(Yeo1_scaled)
 #Yeo 2
-Yeo2_scaled<- lm(scale(Yeo_2) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*envSEShigh, data=master)
+Yeo2_scaled<- lm(scale(Yeo_2) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*scale(envSES), data=master)
 summary(Yeo2_scaled)
 #Yeo 3
-Yeo3_scaled<- lm(scale(Yeo_3) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*envSEShigh, data=master)
+Yeo3_scaled<- lm(scale(Yeo_3) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*scale(envSES), data=master)
 summary(Yeo3_scaled)
 #Yeo 4
-Yeo4_scaled<- lm(scale(Yeo_4) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*envSEShigh, data=master)
+Yeo4_scaled<- lm(scale(Yeo_4) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*scale(envSES), data=master)
 summary(Yeo4_scaled)
 #Yeo 5
-Yeo5_scaled<- lm(scale(Yeo_5) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*envSEShigh, data=master)
+Yeo5_scaled<- lm(scale(Yeo_5) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*scale(envSES), data=master)
 summary(Yeo5_scaled)
 #Yeo 6
-Yeo6_scaled <- lm(scale(Yeo_6) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*envSEShigh, data=master)
+Yeo6_scaled <- lm(scale(Yeo_6) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*scale(envSES), data=master)
 summary(Yeo6_scaled)
 #Yeo 7
-Yeo7_scaled <- lm(scale(Yeo_7) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*envSEShigh, data=master)
+Yeo7_scaled <- lm(scale(Yeo_7) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*scale(envSES), data=master)
 summary(Yeo7_scaled)
 
 #scaled Yeo agexses betas
@@ -288,7 +290,7 @@ colnames(agexses_scaled_yeo_betas) <- c("agexses_betas", "agexses_se", "agexses_
 agexses_scaled_yeo_betas$agexses_pvalsfdr <- p.adjust(agexses_scaled_yeo_betas$agexses_pvals,method = "fdr")
 agexses_scaled_yeo_betas$Yeonet <- 1:7
 outfile <- data.frame(age_scaled_yeo_betas, agexses_scaled_yeo_betas)
-write.csv(outfile, paste0(clustcodir, "yeo_network_betas_scaled.csv"))
+write.csv(outfile, paste0(clustcodir, "yeo_network_betas_scaled_small_sample_cont_ses.csv"))
 
 ###### FIGURE 3 #######
 yeo_betas <- read.csv(paste0(clustcodir, "yeo_network_betas_scaled.csv"))
@@ -328,7 +330,10 @@ clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
 full_nodewise_clustco<-read.csv(paste0(clustcodir,"n1012_clust_co_nodewise_by_subj.csv"))
 
 full_nodewise_clustco<-dplyr::rename(full_nodewise_clustco, scanid=subjlist_2)
+#LTN subject list
+subjlist<-read.csv(paste0(sublistdir,"n885_LTNexclude.csv"))
 #Join all needed datasets together
+full_nodewise_clustco<-right_join(full_nodewise_clustco, subjlist, by ="scanid")
 full_nodewise_clustco<-left_join(full_nodewise_clustco, file1, by ="scanid")
 full_nodewise_clustco<-left_join(full_nodewise_clustco, file2, by ="scanid")
 full_nodewise_clustco<-left_join(full_nodewise_clustco, file3, by ="scanid")
@@ -349,10 +354,10 @@ full_nodewise_clustco$ageatscansqdem <- (full_nodewise_clustco$ageAtScan1-mean(f
 full_nodewise_clustco$ageatscansq <- (full_nodewise_clustco$ageAtScan1)^2
 full_nodewise_clustco$ageAtScan1yrs<-(full_nodewise_clustco$ageAtScan1)/12
 #split SES on the median 
-full_nodewise_clustco$envSEShigh=NA
-full_nodewise_clustco$envSEShigh[full_nodewise_clustco$envSES >= 0.0178] <- 1
-full_nodewise_clustco$envSEShigh[full_nodewise_clustco$envSES < 0.0178]<- 0
-full_nodewise_clustco$envSEShigh<-factor(full_nodewise_clustco$envSEShigh, labels=c("Low", "High"), ordered=TRUE)
+master$envSEShigh=NA
+master$envSEShigh[master$envSES >= -0.0613] <- 1
+master$envSEShigh[master$envSES < -0.0613]<- 0
+master$envSEShigh<-factor(master$envSEShigh, labels=c("Low", "High"), ordered=TRUE)
 
 #should potentially be centering the age and envSES variables before looking at interactions
 full_nodewise_clustco$ageAtScan1cent<-(full_nodewise_clustco$ageAtScan1-mean(full_nodewise_clustco$ageAtScan1))
@@ -360,7 +365,7 @@ full_nodewise_clustco$ageAtScan1yrscent<-(full_nodewise_clustco$ageAtScan1yrs-me
 full_nodewise_clustco$envSEScent<-(full_nodewise_clustco$envSES-mean(full_nodewise_clustco$envSES))
 
 #LOOK AT EACH NODE FOR AGE EFFECT IN THE LINEAR MODEL
-covariates=" ~ ageAtScan1cent+sex+race2+avgweight+restRelMeanRMSMotion"
+covariates=" ~ ageAtScan1cent+sex+race2+avgweight+restRelMeanRMSMotion+envSES"
 m <- mclapply(names(full_nodewise_clustco[,3:361]), function(x) {as.formula(paste(x, covariates, sep=""))},mc.cores=2)
 NodeWise_Clustco_lm_Age_pvals <- mclapply(m, function(x) { summary(lm(formula = x,data=full_nodewise_clustco))$coef[2,4]},mc.cores=1)
 NodeWise_Clustco_lm_Age_pvals <- as.data.frame(NodeWise_Clustco_lm_Age_pvals)
@@ -384,7 +389,7 @@ colnames(NodeWise_Clustco_lm_Age_betas) <- "NodeWise_Clustco_lm_Age_betas"
 NodeWise_Clustco_lm_Age_betas$Node_index <- 1:359
 
 #LOOK AT EACH NODE FOR AGE*SES EFFECT IN THE LINEAR MODEL
-covariates=" ~ ageAtScan1cent+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1cent*envSEShigh"
+covariates=" ~ ageAtScan1cent+sex+race2+avgweight+restRelMeanRMSMotion+envSES+ageAtScan1cent*envSES"
 m <- mclapply(names(full_nodewise_clustco[,3:361]), function(x) {as.formula(paste(x, covariates, sep=""))},mc.cores=2)
 NodeWise_Clustco_lm_AgexSES_pvals <- mclapply(m, function(x) { summary(lm(formula = x,data=full_nodewise_clustco))$coef[9,4]},mc.cores=1)
 NodeWise_Clustco_lm_AgexSES_pvals <- as.data.frame(NodeWise_Clustco_lm_AgexSES_pvals)
@@ -392,6 +397,8 @@ NodeWise_Clustco_lm_AgexSES_pvals <- t(NodeWise_Clustco_lm_AgexSES_pvals)
 NodeWise_Clustco_lm_AgexSES_pvals <- as.data.frame(NodeWise_Clustco_lm_AgexSES_pvals)
 colnames(NodeWise_Clustco_lm_AgexSES_pvals) <- "NodeWise_Clustco_lm_AgexSES_pvals"
 NodeWise_Clustco_lm_AgexSES_pvals$Node_index <- 1:359
+names <- colnames(select(full_nodewise_clustco, avgclustco_both_..1:avgclustco_both_359))
+NodeWise_Clustco_lm_AgexSES_pvals$Names <- names
 #Bonferroni
 Bonferronip=0.05/dim(NodeWise_Clustco_lm_AgexSES_pvals)[1]
 sig_nodes_lm_AgexSES_bonf<-NodeWise_Clustco_lm_AgexSES_pvals[NodeWise_Clustco_lm_AgexSES_pvals$NodeWise_Clustco_lm_AgexSES_pvals < Bonferronip,]
@@ -416,14 +423,14 @@ nodes[1] <- "..8"
 nodes[2:9]=c(".36" , ".38" , ".40" , ".41"  ,".53" , ".57" , ".60",  ".66")
 node_names<-paste("avgclustco_both_",nodes, sep="")
 #average across all 26 nodes to create one "significant area" per subject
-full_nodewise_clustco <- full_nodewise_clustco %>% mutate(., mean_peaks=rowMeans(select(.,one_of(node_names))))
+full_nodewise_clustco <- full_nodewise_clustco %>% ungroup(.) %>% mutate(., mean_peaks=rowMeans(select(.,one_of(fdr_sig_nodes_lm_AgexSES$Names))))
 #analyze and plot
-peak_areas_only<- lm(mean_peaks ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+ageAtScan1yrs*envSEShigh, data=full_nodewise_clustco)
-peak_areas_only2<- lm(scale(mean_peaks) ~ scale(ageAtScan1yrscent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1yrscent)*envSEShigh, data=full_nodewise_clustco)
+peak_areas_only<- lm(mean_peaks ~ ageAtScan1yrscent+sex+race2+avgweight+restRelMeanRMSMotion+ageAtScan1yrscent*envSES, data=full_nodewise_clustco)
+peak_areas_only2<- lm(scale(mean_peaks) ~ scale(ageAtScan1yrscent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1yrscent)*scale(envSES), data=full_nodewise_clustco)
 summary(peak_areas_only)
 #regular visreg plot
-visreg(peak_areas_only, "ageAtScan1yrs", by ="envSEShigh", main="Mean Clustering Coefficient of Peak Regions",
-       xlab="Age in Years", overlay=TRUE, ylab=" Mean Clustering Coefficient (partial residuals)", strip.names=c("Low SES", "High SES"))
+visreg(peak_areas_only, "ageAtScan1yrscent", by ="envSES", main="",
+       xlab="Age in Years", overlay=TRUE, ylab=" Mean Clustering Coefficient of peak regions (partial residuals)")
 
 #WRITE OUT A CSV OF BETAS FOR MATLAB PLOTTING ON BRAIN
 outfile<-cbind(NodeWise_Clustco_lm_Age_betas$NodeWise_Clustco_lm_Age_betas, NodeWise_Clustco_lm_AgexSES_betas$NodeWise_Clustco_lm_AgexSES_betas)
@@ -431,10 +438,9 @@ colnames(outfile)<-c("lm_age_betas", "lm_agexses_betas")
 write.csv(outfile, paste0("~/Dropbox (Personal)/bassett_lab/clustco_paper/nodewise_betas_for_lms.csv"))
 
 #WRITE OUT A CSV OF NODE PVALS TO BE READ INTO MATLAB FOR PLOTTING ON BRAIN
-outfile<-cbind(sig_nodes_GAM_age$fdr_corrected, sig_nodes_GAM_sesint_medsp$fdr_corrected, 
-               sig_nodes_lm_age$fdr_corrected, sig_nodes_lm_AgexSES$fdr_corrected)
-colnames(outfile)<-c("fdr_pvals_GAM_age", "fdr_pvals_GAM_agexses", "fdr_pvals_lm_age", "fdr_pvals_lm_agexses")
-write.csv(outfile, paste0("~/Dropbox (Personal)/bassett_lab/clustco_paper/nodewise_pvals_for_GAMs_and_lms.csv"))
+outfile<-cbind(sig_nodes_lm_age$fdr_corrected, sig_nodes_lm_AgexSES$fdr_corrected)
+colnames(outfile)<-c("fdr_pvals_lm_age", "fdr_pvals_lm_agexses")
+write.csv(outfile, paste0("~/Dropbox (Personal)/bassett_lab/clustco_paper/nodewise_pvals_for_lms_small_sample_cont_ses.csv"))
 
 #############
 ##### FIGURE 4: REHO #######
@@ -452,6 +458,10 @@ master<-select(master, -rest_glasser_reho_Right_52)
 master <- master %>% rowwise() %>% mutate(mean_reho=mean(rest_glasser_reho_Right_V1:rest_glasser_reho_Left_p24))
 summary(master$mean_reho)
 
+#filter out subjects who have NAs
+master <- master %>% filter(., !is.na(avgclustco_both))
+full_nodewise_clustco <- full_nodewise_clustco %>% filter(., !is.na(avgclustco_both_..1))
+
 #are reho and clustco correlated?
 cor.test(master$mean_reho, master$avgclustco_both)
 #what about when controlling for other covariates?
@@ -460,7 +470,7 @@ temp<-cbind(master$ageAtScan1cent,as.factor(master$sex), as.factor(master$race2)
 pcor.test(master$avgclustco_both, master$mean_reho, temp)
 
 ### WHOLE BRAIN REHO MODEL ###
-l <- lm(mean_reho~ageAtScan1cent+race2+sex+restRelMeanRMSMotion+envSEShigh, data=master)
+l <- lm(mean_reho~ageAtScan1cent+race2+sex+restRelMeanRMSMotion+envSES, data=master)
 summary(l)
 lm.beta(l)
 
@@ -504,7 +514,7 @@ correlationspvals <- as.data.frame(correlationspvals)
 ### REGIONAL REHO MODELS ###
 
 #LOOK AT EACH NODE FOR AGE EFFECT IN THE LINEAR MODEL
-covariates=" ~ ageAtScan1cent+sex+race2+restRelMeanRMSMotion+envSEShigh"
+covariates=" ~ ageAtScan1cent+sex+race2+restRelMeanRMSMotion+envSES"
 #check that the names with this dataframe pulls rest_glasser variables
 m <- mclapply(names(master[,3:361]), function(x) {as.formula(paste(x, covariates, sep=""))},mc.cores=2)
 NodeWise_reho_lm_Age_pvals <- mclapply(m, function(x) { summary(lm(formula = x,data=master))$coef[2,4]},mc.cores=1)
@@ -534,7 +544,7 @@ NodeWise_Reho_lm_Age_betas$Node_index <- 1:359
 increases<-NodeWise_Reho_lm_Age_betas[NodeWise_Reho_lm_Age_betas$NodeWise_Reho_lm_Age_betas>0,]
 
 #LOOK AT EACH NODE FOR AGE*SES EFFECT IN THE LINEAR MODEL
-covariates=" ~ ageAtScan1cent+sex+race2+restRelMeanRMSMotion+envSEShigh+ageAtScan1cent*envSEShigh"
+covariates=" ~ ageAtScan1cent+sex+race2+restRelMeanRMSMotion+envSES+ageAtScan1cent*envSES"
 m <- mclapply(names(master[,3:361]), function(x) {as.formula(paste(x, covariates, sep=""))},mc.cores=2)
 NodeWise_Reho_lm_AgexSES_pvals <- mclapply(m, function(x) { summary(lm(formula = x,data=master))$coef[8,4]},mc.cores=1)
 NodeWise_Reho_lm_AgexSES_pvals <- as.data.frame(NodeWise_Reho_lm_AgexSES_pvals)
@@ -566,7 +576,7 @@ NodeWise_Reho_lm_AgexSES_betas$Node_index <- 1:359
 #write out a csv of nodewise betas and pvals
 outfile<-cbind(NodeWise_Reho_lm_Age_betas$NodeWise_Reho_lm_Age_betas, NodeWise_Reho_lm_Age_pvals$fdr_corrected, NodeWise_Reho_lm_AgexSES_betas$NodeWise_Reho_lm_AgexSES_betas, NodeWise_Reho_lm_AgexSES_pvals$fdr_corrected)
 colnames(outfile)<-c("reho_age_effect_betas", "reho_age_effect_pvals_fdr", "reho_agexses_effect_betas", "reho_agexses_effect_pvals_fdr")
-write.csv(outfile, paste0("~/Dropbox (Personal)/bassett_lab/clustco_paper/nodewise_estimates_for_reho_effect_corrected.csv"))
+write.csv(outfile, paste0("~/Dropbox (Personal)/bassett_lab/clustco_paper/nodewise_estimates_for_reho_effect_corrected_small_sample_cont_ses.csv"))
 
 ### FIG 5D ####
 
@@ -581,25 +591,23 @@ node_names<-paste("avgclustco_both_",nodes, sep="")
 #average across all nodes to create one "significant area" per subject
 master <- master %>% ungroup(.) %>%  mutate(., mean_peaks_reho=rowMeans(select(.,one_of(fdr_sig_nodes_reho_lm_AgexSES$Names))))
 #analyze and plot
-peak_areas_only<- lm(mean_peaks_reho ~ ageAtScan1yrs+sex+race2+restRelMeanRMSMotion+ageAtScan1yrs*envSEShigh, data=master)
-peak_areas_only2<- lm(scale(mean_peaks_reho) ~ scale(ageAtScan1yrscent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1yrscent)*envSEShigh, data=master)
+peak_areas_only<- lm(mean_peaks_reho ~ ageAtScan1yrscent+sex+race2+restRelMeanRMSMotion+ageAtScan1yrscent*envSES, data=master)
+peak_areas_only2<- lm(scale(mean_peaks_reho) ~ scale(ageAtScan1yrscent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1yrscent)*scale(envSES), data=master)
 
 #plot it
-visreg(peak_areas_only, "ageAtScan1yrs", by ="envSEShigh", main="Mean Clustering Coefficient of Peak Regions",
-       xlab="Age in Years", ylab=" Mean Clustering Coefficient (partial residuals)", overlay=TRUE, partial=FALSE, rug=FALSE, 
-       line=list(col=c(rgb(28, 147, 255, maxColorValue = 255), rgb(255, 168, 28, maxColorValue = 255))), 
-       fill=list(col=c(alpha(rgb(28, 147, 255, maxColorValue = 255), 0.7), alpha(rgb(255, 168, 28, maxColorValue = 255),0.7))))
+visreg(peak_areas_only, "ageAtScan1yrscent", by ="envSES", main="",
+       xlab="Age in Years", ylab=" Mean Clustering Coefficient (partial residuals)", overlay=TRUE, partial=FALSE, rug=FALSE)
 
 ### REGRESS OUT REHO FROM CLUSTERING, LOOK AT THE EFFECT ACROSS REGIONS
 pvalsforclustco=numeric(359)
 for (i in 1:359){
   clustco=nodewise_clustco[i]
   reho=nodewise_reho[i]
-  temp=cbind(master$ageAtScan1cent,as.factor(master$sex), as.factor(master$race2), master$restRelMeanRMSMotion,as.factor(master$envSEShigh), master$avgweight, clustco,reho)
-  colnames(temp)=c("ageAtScan1cent", "sex", "race2", "restRelMeanRMSMotion", "envSEShigh", "avgweight","clustco", "reho")
+  temp=cbind(master$ageAtScan1cent,as.factor(master$sex), as.factor(master$race2), master$restRelMeanRMSMotion,master$envSES, master$avgweight, clustco,reho)
+  colnames(temp)=c("ageAtScan1cent", "sex", "race2", "restRelMeanRMSMotion", "envSES", "avgweight","clustco", "reho")
   temp$residclustco <- resid(lm(clustco~reho, data=temp))
   #temp$residclustco <- mean(temp$clustco)+temp$residclustco
-  pvalsforclustco[[i]]<- summary(lm(residclustco~ageAtScan1cent+avgweight+race2+sex+restRelMeanRMSMotion+envSEShigh+ageAtScan1cent*envSEShigh, data=temp))$coef[9,4]
+  pvalsforclustco[[i]]<- summary(lm(residclustco~ageAtScan1cent+avgweight+race2+sex+restRelMeanRMSMotion+envSES+ageAtScan1cent*envSES, data=temp))$coef[9,4]
 }
 #see if there are any nodes for agexses interaction remains significant when regressed out reho
 sig_nodes <- pvalsforclustco[pvalsforclustco<0.05]
@@ -610,8 +618,8 @@ fdr_sig_nodes <- ps[ps<0.05]
 length(fdr_sig_nodes)
 
 #WHOLE BRAIN MODEL WITH REHO DOES NOT FIT BETTER, AFFECT SIGNIFICANCE OF CLUST INTERACTION
-l <- lm(scale(avgclustco_both)~scale(ageAtScan1cent)+race2+sex+scale(avgweight)+scale(restRelMeanRMSMotion)+envSEShigh+scale(ageAtScan1cent)*envSEShigh, data=master)
-l2 <- lm(scale(avgclustco_both)~scale(ageAtScan1cent)+race2+sex+scale(avgweight)+scale(mean_reho)+scale(restRelMeanRMSMotion)+envSEShigh+scale(ageAtScan1cent)*envSEShigh, data=master)
+l <- lm(scale(avgclustco_both)~scale(ageAtScan1cent)+race2+sex+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(envSES)+scale(ageAtScan1cent)*scale(envSES), data=master)
+l2 <- lm(scale(avgclustco_both)~scale(ageAtScan1cent)+race2+sex+scale(avgweight)+scale(mean_reho)+scale(restRelMeanRMSMotion)+scale(envSES)+scale(ageAtScan1cent)*scale(envSES), data=master)
 summary(l2)
 lrtest(l,l2)
 anova(l,l2, test="Chisq")
@@ -626,30 +634,30 @@ file7<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_sub_n
 file7<-dplyr::rename(file7, scanid=subjlist_2)
 master<-right_join(file7, master, by ="scanid")
 #look at each bin for distance-dependence effect of age x SES in linear model
-covariates=" ~ ageAtScan1cent+sex+race2+restRelMeanRMSMotion+envSEShigh+ageAtScan1cent*envSEShigh"
-m <- mclapply(names(master[,23:42]), function(x) {as.formula(paste(x, covariates, sep=""))},mc.cores=2)
+covariates=" ~ ageAtScan1cent+sex+race2+restRelMeanRMSMotion+envSES+ageAtScan1cent*envSES"
+m <- mclapply(names(master[,3:23]), function(x) {as.formula(paste(x, covariates, sep=""))},mc.cores=2)
 distance_bins_agexses_betas <- mclapply(m, function(x) { lm.beta(lm(formula = x,data=master))$standardized.coefficient[8]},mc.cores=1)
 distance_bins_agexses_betas <- as.data.frame(distance_bins_agexses_betas)
 distance_bins_agexses_betas <- t(distance_bins_agexses_betas)
 distance_bins_agexses_betas <- as.data.frame(distance_bins_agexses_betas)
 x<-cbind(distance_bins_agexses_betas, as.character(m))
 colnames(x) <- c("beta_for_agexses_interaction", "formula")
-write.csv(x, file= "~/Dropbox/bassett_lab/analyses/csv/distance_weight_binned_agexses_betas.csv")
+write.csv(x, file= "~/Dropbox (Personal)//bassett_lab/analyses/csv/distance_weight_binned_agexses_betas_small_sample_cont_ses.csv")
 
 x %>% filter(.,formula == starts_with("avgweight"))
 avgweight_only<-x[grep("avgweight*", x$formula),]
 
 # INCLUDE AVERAGE WEIGHT IN EACH MODEL for distance dependence 
-t0to1model_clustco_distances<-lm(scale(avgclustco_both_0to1_longest) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_0to1_longest)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t1to2model_clustco_distances<-lm(scale(avgclustco_both_1to2_longest) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_1to2_longest)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t2to3model_clustco_distances<-lm(scale(avgclustco_both_2to3_longest) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_2to3_longest)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t3to4model_clustco_distances<-lm(scale(avgclustco_both_3to4_longest) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_3to4_longest)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t4to5model_clustco_distances<-lm(scale(avgclustco_both_4to5_longest) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_4to5_longest)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t5to6model_clustco_distances<-lm(scale(avgclustco_both_5to6_longest) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_5to6_longest)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t6to7model_clustco_distances<-lm(scale(avgclustco_both_6to7_longest) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_6to7_longest)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t7to8model_clustco_distances<-lm(scale(avgclustco_both_7to8_longest) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_7to8_longest)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t8to9model_clustco_distances<-lm(scale(avgclustco_both_8to9_longest) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_8to9_longest)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t9to10model_clustco_distances<-lm(scale(avgclustco_both_9to10_longest) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_9to10_longest)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
+t0to1model_clustco_distances<-lm(scale(avgclustco_both_0to1_longest) ~ scale(ageAtScan1yrs) + sex + race2 + scale(avgweight_0to1_longest)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1yrs) * scale(envSES), data=master)
+t1to2model_clustco_distances<-lm(scale(avgclustco_both_1to2_longest) ~ scale(ageAtScan1yrs) + sex + race2 + scale(avgweight_1to2_longest)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1yrs) * scale(envSES), data=master)
+t2to3model_clustco_distances<-lm(scale(avgclustco_both_2to3_longest) ~ scale(ageAtScan1yrs) + sex + race2 + scale(avgweight_2to3_longest)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1yrs) * scale(envSES), data=master)
+t3to4model_clustco_distances<-lm(scale(avgclustco_both_3to4_longest) ~ scale(ageAtScan1yrs) + sex + race2 + scale(avgweight_3to4_longest)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1yrs) * scale(envSES), data=master)
+t4to5model_clustco_distances<-lm(scale(avgclustco_both_4to5_longest) ~ scale(ageAtScan1yrs) + sex + race2 + scale(avgweight_4to5_longest)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1yrs) * scale(envSES), data=master)
+t5to6model_clustco_distances<-lm(scale(avgclustco_both_5to6_longest) ~ scale(ageAtScan1yrs) + sex + race2 + scale(avgweight_5to6_longest)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1yrs) * scale(envSES), data=master)
+t6to7model_clustco_distances<-lm(scale(avgclustco_both_6to7_longest) ~ scale(ageAtScan1yrs) + sex + race2 + scale(avgweight_6to7_longest)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1yrs) * scale(envSES), data=master)
+t7to8model_clustco_distances<-lm(scale(avgclustco_both_7to8_longest) ~ scale(ageAtScan1yrs) + sex + race2 + scale(avgweight_7to8_longest)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1yrs) * scale(envSES), data=master)
+t8to9model_clustco_distances<-lm(scale(avgclustco_both_8to9_longest) ~ scale(ageAtScan1yrs) + sex + race2 + scale(avgweight_8to9_longest)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1yrs) * scale(envSES), data=master)
+t9to10model_clustco_distances<-lm(scale(avgclustco_both_9to10_longest) ~ scale(ageAtScan1yrs) + sex + race2 + scale(avgweight_9to10_longest)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1yrs) * scale(envSES), data=master)
 #make a list of models
 mna<-list(t0to1model_clustco_distances, t1to2model_clustco_distances, t2to3model_clustco_distances, t3to4model_clustco_distances, t4to5model_clustco_distances, t5to6model_clustco_distances, t6to7model_clustco_distances, t7to8model_clustco_distances, t8to9model_clustco_distances, t9to10model_clustco_distances)
 #get the betas for the age x SES interaction
@@ -667,16 +675,16 @@ nullmodels <- read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/null
 nullmodels<-dplyr::rename(nullmodels, scanid=subjlist_2)
 master<-right_join(nullmodels, master, by ="scanid")
 ## INCLUDE AVERAGE WEIGHT IN EACH MODEL for distance dependence 
-t0to1model_clustco_distances_null<-lm(scale(avgclustco_both_0to1_longestnull) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_0to1_longestnull)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t1to2model_clustco_distances_null<-lm(scale(avgclustco_both_1to2_longestnull) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_1to2_longestnull)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t2to3model_clustco_distances_null<-lm(scale(avgclustco_both_2to3_longestnull) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_2to3_longestnull)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t3to4model_clustco_distances_null<-lm(scale(avgclustco_both_3to4_longestnull) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_3to4_longestnull)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t4to5model_clustco_distances_null<-lm(scale(avgclustco_both_4to5_longestnull) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_4to5_longestnull)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t5to6model_clustco_distances_null<-lm(scale(avgclustco_both_5to6_longestnull) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_5to6_longestnull)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t6to7model_clustco_distances_null<-lm(scale(avgclustco_both_6to7_longestnull) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_6to7_longestnull)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t7to8model_clustco_distances_null<-lm(scale(avgclustco_both_7to8_longestnull) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_7to8_longestnull)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t8to9model_clustco_distances_null<-lm(scale(avgclustco_both_8to9_longestnull) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_8to9_longestnull)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
-t9to10model_clustco_distances_null<-lm(scale(avgclustco_both_9to10_longestnull) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_9to10_longestnull)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
+t0to1model_clustco_distances_null<-lm(scale(avgclustco_both_0to1_longestnull) ~ scale(ageAtScan1) + sex + race2 + scale(avgweight_0to1_longestnull)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1) * scale(envSES), data=master)
+t1to2model_clustco_distances_null<-lm(scale(avgclustco_both_1to2_longestnull) ~ scale(ageAtScan1) + sex + race2 + scale(avgweight_1to2_longestnull)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1) * scale(envSES), data=master)
+t2to3model_clustco_distances_null<-lm(scale(avgclustco_both_2to3_longestnull) ~ scale(ageAtScan1) + sex + race2 + scale(avgweight_2to3_longestnull)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1) * scale(envSES), data=master)
+t3to4model_clustco_distances_null<-lm(scale(avgclustco_both_3to4_longestnull) ~ scale(ageAtScan1) + sex + race2 + scale(avgweight_3to4_longestnull)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1) * scale(envSES), data=master)
+t4to5model_clustco_distances_null<-lm(scale(avgclustco_both_4to5_longestnull) ~ scale(ageAtScan1) + sex + race2 + scale(avgweight_4to5_longestnull)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1) * scale(envSES), data=master)
+t5to6model_clustco_distances_null<-lm(scale(avgclustco_both_5to6_longestnull) ~ scale(ageAtScan1) + sex + race2 + scale(avgweight_5to6_longestnull)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1) * scale(envSES), data=master)
+t6to7model_clustco_distances_null<-lm(scale(avgclustco_both_6to7_longestnull) ~ scale(ageAtScan1) + sex + race2 + scale(avgweight_6to7_longestnull)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1) * scale(envSES), data=master)
+t7to8model_clustco_distances_null<-lm(scale(avgclustco_both_7to8_longestnull) ~ scale(ageAtScan1) + sex + race2 + scale(avgweight_7to8_longestnull)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1) * scale(envSES), data=master)
+t8to9model_clustco_distances_null<-lm(scale(avgclustco_both_8to9_longestnull) ~ scale(ageAtScan1) + sex + race2 + scale(avgweight_8to9_longestnull)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1) * scale(envSES), data=master)
+t9to10model_clustco_distances_null<-lm(scale(avgclustco_both_9to10_longestnull) ~ scale(ageAtScan1) + sex + race2 + scale(avgweight_9to10_longestnull)+ scale(restRelMeanRMSMotion) + scale(envSES) + scale(ageAtScan1) * scale(envSES), data=master)
 #make a list of models
 nullmodels<-list(t0to1model_clustco_distances_null, t1to2model_clustco_distances_null, t2to3model_clustco_distances_null, t3to4model_clustco_distances_null, t4to5model_clustco_distances_null, t5to6model_clustco_distances_null, t6to7model_clustco_distances_null, t7to8model_clustco_distances_null, t8to9model_clustco_distances_null, t9to10model_clustco_distances_null)
 #get the betas for the age x SES interaction
