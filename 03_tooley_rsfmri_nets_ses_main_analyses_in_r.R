@@ -101,6 +101,15 @@ t.test(PercentMarried~envSEShigh, data=master)
 t.test(MedianFamilyIncome~envSEShigh, data=master)
 chisq.test(table(master$envSEShigh, master$sex))
 
+#Is average weight higher in females or is gender related to motion?
+t.test(avgweight~sex, data=master)
+t.test(restRelMeanRMSMotion~sex, data=master)
+l <- lm(avgweight~restRelMeanRMSMotion+ageAtScan1yrs+race2+sex, data=master)
+summary(l)
+
+l <- lm(restRelMeanRMSMotion~ageAtScan1yrs+race2+sex, data=master)
+summary(l)
+
 ##########
 ##### Global effects on rs-fMRI topology ####
 ##########
