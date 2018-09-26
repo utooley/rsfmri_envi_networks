@@ -116,6 +116,10 @@ summary(l)
 ## Files from 01_z_transform_FC_matrices.m and 02_net_meas_for_subjs_signed.m
 ###CLUSTERING####
 
+#non-linear relationship with age?
+ageonlyRlrtmodel<-gamm(avgclustco_both~s(ageAtScan1cent)+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh, method='REML', data=master)$lme
+l<-exactRLRT(ageonlyRlrtmodel)
+
 #linear age effect without interaction
 l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+restRelMeanRMSMotion+avgweight+envSEShigh, data=master)
 summary(l)

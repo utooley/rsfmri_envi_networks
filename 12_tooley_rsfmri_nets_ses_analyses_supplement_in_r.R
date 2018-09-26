@@ -140,6 +140,21 @@ lmat <- lm(modul ~ ageAtScan1cent+sex+race2+avgweight+restRelMeanRMSMotion+medu1
 summary(lmat)
 
 #############
+##### STRINGENT EXCLUSION CRITERIA ###
+############
+# see 12_tooley_rsfmri_nets_ses_supplement_smaller_sample.R
+
+#############
+##### NEIGHBORHOOD SES MODELED CONTINUOUSLY ###
+############
+# see 12_tooley_rsfmri_nets_ses_supplement_cont_ses.R
+
+#############
+##### STRINGENT EXCLUSION CRITERIA + NEIGHBORHOOD SES MODELED CONTINUOUSLY ###
+############
+# see 12_tooley_rsfmri_nets_ses_supplement_smaller_sample_cont_ses.R
+
+#############
 ##### BIVARIATE RELATIONSHIPS BETWEEN PREDICTORS ###
 ############
 library(Hmisc)

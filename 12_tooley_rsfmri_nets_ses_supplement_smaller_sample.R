@@ -108,6 +108,10 @@ chisq.test(table(master$envSEShigh, master$sex))
 ## Files from 01_z_transform_FC_matrices.m and 02_net_meas_for_subjs_signed.m
 ###CLUSTERING####
 
+#non-linear relationship with age?
+ageonlyRlrtmodel<-gamm(avgclustco_both~s(ageAtScan1cent)+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh, method='REML', data=master)$lme
+l<-exactRLRT(ageonlyRlrtmodel)
+
 #linear age effect without interaction
 l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+restRelMeanRMSMotion+avgweight+envSEShigh, data=master)
 summary(l)
@@ -119,7 +123,12 @@ lmageplot<-visreg(l, "ageAtScan1yrs",
 l2 <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
 summary(l2)
 l2.beta <- lm.beta(l2)
-anova(l,l2,test="Chisq")
+visreg(l2, "ageAtScan1yrs", by="envSEShigh", main="Mean Clustering Coefficient (partial residuals)",
+       xlab="Age in Years", ylab="", partial=FALSE, overlay=TRUE,rug=FALSE, legend=FALSE,ylim=c(0.18,0.24),
+       line=list(col=c(rgb(28, 147, 255, maxColorValue = 255), rgb(255, 168, 28, maxColorValue = 255))), 
+       fill=list(col=c(alpha(rgb(28, 147, 255, maxColorValue = 255), 0.7), alpha(rgb(255, 168, 28, maxColorValue = 255),0.7))),
+       points=list(col=c(rgb(28, 147, 255, maxColorValue = 255), rgb(255, 168, 28, maxColorValue = 255))), 
+       strip.names=c("Low SES", "High SES"))
 
 lrtest(l,l2)
 l2 <- lm(scale(avgclustco_both) ~ scale(ageAtScan1yrs)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+envSEShigh+scale(ageAtScan1yrs)*envSEShigh, data=master)
@@ -127,7 +136,23 @@ summary(l2)
 #make tables
 #apa.reg.table(l, filename = "Supp_Table1_APA.doc", table.number = 2)
 #sjt.lm(l2, show.std = TRUE, p.zero = TRUE)
-stargazer(l,l2,l.beta, l2.beta, single.row = TRUE, type="latex", report = "vcstp*", digits = NA)
+#stargazer(l,l2,l.beta, l2.beta, single.row = TRUE, type="html", report = "vcstp*", digits = NA)
+
+#### Maternal education ###
+cor.test(master$envSES,master$medu1, method = "spearman", alternative = "two.sided")
+
+#effects still hold with maternal ed added to the model
+lmat <- lm(avgclustco_both ~ ageAtScan1cent+sex+race2+avgweight+envSEShigh+medu1cent+restRelMeanRMSMotion, data=master)
+summary(lmat)
+lm.beta(lmat)
+lmat <- lm(avgclustco_both ~ ageAtScan1cent+sex+race2+avgweight+medu1cent+restRelMeanRMSMotion+envSEShigh+ageAtScan1cent*envSEShigh, data=master)
+summary(lmat)
+lm.beta(lmat)
+#use maternal ed instead of envSES
+lmat <- lm(avgclustco_both ~ ageAtScan1cent+sex+race2+avgweight+restRelMeanRMSMotion+medu1cent+ageAtScan1cent*medu1cent, data=master)
+summary(lmat)
+lmat <- lm(modul ~ ageAtScan1cent+sex+race2+avgweight+restRelMeanRMSMotion+medu1cent+ageAtScan1cent*medu1cent, data=master)
+summary(lmat)
 
 ##### Null model networks ######
 #Get the null models file, made with 02_net_meas_for_subjs_signed_nulls.m and 04_consolidate_subjs_null_models.m
@@ -145,16 +170,20 @@ summary(l)
 l <- lm(avgclustco_both_null2~ageAtScan1yrs+sex+race2+avgweight_null2+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrs*envSEShigh, data=master_nulls)
 summary(l)  
 
-#plot it
-temp=data.frame(master,master_nulls)
-require(reshape2)
-df <- melt(data.frame(master$avgclustco_both, master_nulls$avgclustco_both_null2))
-colnames(df) <- c("which", "value")
-print(df)
-#dotplot
-ggplot(df, aes(which, value))+ geom_dotplot(binaxis="y", mapping = aes(which, value),stackdir="center", 
-                                            position="jitter", stackratio = 0.01, binwidth =0.01,dotsize = 0.4, alpha=0.5)+stat_summary(fun.y = median, fun.ymin = median, fun.ymax = median,
-                                                                                                                                        geom = "crossbar", width = 0.8, col=rgb(101, 58, 150, maxColorValue = 255))
+#### SCHAEFER PARCELS ####
+
+file9<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1015_sub_net_meas_schaefer_signed.csv")
+#rename the second column of the network statistics file to be 'scanid' so it matches below
+file9<-dplyr::rename(file9, scanid=subjlist_2)
+colnames(file9) <- c("subjlist_1", "scanid", "avgweight_schaefer", "avgclustco_both_schaefer", "modul_schaefer")
+master<-right_join(file9,master, by="scanid")
+l <- lm(avgclustco_both_schaefer ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh, data=master)
+summary(l)
+lm.beta(l)
+l <- lm(avgclustco_both_schaefer~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
+summary(l)
+lm.beta(l)
+
 ######MODULARITY######
 
 #linear age effect without interaction
