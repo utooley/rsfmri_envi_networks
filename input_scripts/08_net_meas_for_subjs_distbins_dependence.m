@@ -1,8 +1,8 @@
 % %% SETUP
 % %Running Locally
-% datadir=fullfile('~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/restNetwork_GlasserPNC/GlasserPNCzNetworks/')
-% listdir='~/Documents/bassett_lab/tooleyEnviNetworks/subjectLists'
-% outdir='~/Documents/bassett_lab/tooleyEnviNetworks/analyses'
+datadir=fullfile('~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/restNetwork_GlasserPNC/GlasserPNCzNetworks/')
+listdir='~/Documents/bassett_lab/tooleyEnviNetworks/subjectLists'
+outdir='~/Documents/bassett_lab/tooleyEnviNetworks/analyses'
 % 
 % %Running Locally Bassett
 % datadir=fullfile('~/Documents/tooleyEnviNetworks/data/rest/restNetwork_GlasserPNC/GlasserPNCzNetworks/')
@@ -20,7 +20,7 @@ subjlist=csvread(fullfile(listdir,'n1012_healthT1RestExclude_parcels.csv'),1, 0 
 
 %% Distance Dependence of the Effect Distance Bins
 %load Euclidean distances matrix of the Glasser nodes
-distmatdir='~/Documents/tooleyEnviNetworks/parcels/Glasser';
+distmatdir='~/Documents/bassett_lab/tooleyEnviNetworks/parcels/Glasser';
 distmat=load(fullfile(distmatdir,'GlasserEuclideanDistanceMatrix.txt'));
 
 %take parcel 52 out of the distance matrix
@@ -29,10 +29,11 @@ distmat=removerows(distmat, 'ind', [103]);
 distmat(:,103)=[];
 %threshold the distance matrix at several distances
 for p=0:9
-    my_field=strcat('threshold', num2str(p), 'to', num2str(p+1), 'longest');
-    matrices.(my_field)=threshold_proportional_bins(distmat,(0.1 * p), ((0.1*p)+0.10))
+    my_field=strcat('threshold', num2str(p), 'to', num2str(p+1), 'longest')
+    matrices.(my_field)=threshold_proportional_bins(distmat,(0.1 * p), ((0.1*p)+0.10));
     %convert to binary for each threshold
-    matrices.(my_field)=weight_conversion(matrices.(my_field), 'binarize')
+    mean(matrices.(my_field)(matrices.(my_field)~=0)) %check average length for each bin
+    matrices.(my_field)=weight_conversion(matrices.(my_field), 'binarize');
 end
 for n=1:length(subjlist)
      sub=subjlist(n,2)

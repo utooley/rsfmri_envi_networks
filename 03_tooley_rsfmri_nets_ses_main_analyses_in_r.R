@@ -477,6 +477,11 @@ l <- lm(mean_reho~ageAtScan1cent+race2+sex+restRelMeanRMSMotion+envSEShigh, data
 summary(l)
 lm.beta(l)
 
+#controlling for whole-brain reho when examining the clustering coefficient
+l <- lm(avgclustco_both~ageAtScan1cent+race2+sex+mean_reho+restRelMeanRMSMotion+envSEShigh+ageAtScan1cent*envSEShigh, data=master)
+summary(l)
+lm.beta(l)
+
 #remove packages as they mask dplyr
 detach("package:ppcor", unload=TRUE)
 detach("package:MASS", unload=TRUE)

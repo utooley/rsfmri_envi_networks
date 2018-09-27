@@ -33,6 +33,15 @@ clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
 analysis_dir="~/Documents/bassett_lab/tooleyEnviNetworks/analyses/"
 reho_dir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
 
+#Local mackey computer
+setwd("~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/")
+subinfodir="~/Documents/bassett_lab/tooleyEnviNetworks/data/subjectData/"
+sublistdir="~/Documents/bassett_lab/tooleyEnviNetworks/subjectLists/"
+qadir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
+clustcodir="~/Dropbox/bassett_lab/clustco_paper/"
+analysis_dir="~/Documents/bassett_lab/tooleyEnviNetworks/analyses/"
+reho_dir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
+
 #get subjlist
 subjlist<-read.csv(paste0(sublistdir,"n885_LTNexclude.csv"))
 
@@ -194,7 +203,7 @@ lmageplot<-visreg(l, "ageAtScan1yrs",
                   main="Average Clustering Coefficient", xlab="Age in Years (centered)", ylab="Average Clustering Coefficient (partial residuals)")
 
 #linear model med split
-l2 <- lm(modul ~ ageAtScan1yrs+sex+race2+avgweight.x+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
+l2 <- lm(modul ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
 summary(l2)
 lm.beta(l2)
 anova(l,l2,test="Chisq")
@@ -248,9 +257,27 @@ subject_clustco_yeo_system<-data.frame(subject_clustco_yeo_system)
 #now can match it up to master and look at each the effect for each system
 subject_clustco_yeo_system[,c(1:8)]<-sapply(subject_clustco_yeo_system[,c(1:8)], as.character)
 subject_clustco_yeo_system[,c(1:8)]<-sapply(subject_clustco_yeo_system[,c(1:8)], as.numeric)
-master<-right_join(subject_clustco_yeo_system, master, by ="scanid")
+master <- right_join(master, subject_clustco_yeo_system, by="scanid")
+
+##### Test rather as an age x SES x system interaction, per Reviewer 3 ######
+
+#gather the rows of Yeo systems into one long column
+subject_clustco_yeo_system_long <- gather(subject_clustco_yeo_system, key="yeo_sys", value="avgclustco_both_yeosys", -scanid)
+#join to master data
+master_long <- right_join(master, subject_clustco_yeo_system_long, by="scanid")
+#make sure yeo system is a factor variable and not a character variable
+master_long$yeo_sys<-factor(master_long$yeo_sys)
 
 ### FOR AGE BETAS ####
+
+#look at the age effect and the age x system interaction-do age effects differ across systems?
+l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys, data=master_long)
+summary(l1)
+l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+yeo_sys*ageAtScan1yrscent, data=master_long)
+summary(l2)
+#compare a model with the interaction to one without
+lrtest(l1,l2)
+
 #Yeo 1
 Yeo1 <- lm(scale(Yeo_1) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+envSEShigh+scale(restRelMeanRMSMotion), data=master)
 age_beta_yeo1<-lm.beta(Yeo1)$standardized.coefficients[2]
@@ -286,6 +313,15 @@ outfile <- data.frame(age_scaled_yeo_betas, agexses_scaled_yeo_betas)
 write.csv(outfile, paste0(clustcodir, "yeo_network_betas_scaled.csv"))
 
 #### FOR AGE X SES BETAS ######
+#look at the agex SES effect and the age x SESx system interaction-do age effects differ across systems?
+l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+ageAtScan1yrscent*envSEShigh, data=master_long)
+summary(l1)
+
+l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrscent*envSEShigh*yeo_sys, data=master_long)
+summary(l2)
+
+anova(l1, l2)
+lrtest(l1,l2)
 #Yeo 1
 Yeo1_scaled <- lm(scale(Yeo_1) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*envSEShigh, data=master)
 summary(Yeo1_scaled)
@@ -318,35 +354,7 @@ colnames(agexses_scaled_yeo_betas) <- c("agexses_betas", "agexses_se", "agexses_
 agexses_scaled_yeo_betas$agexses_pvalsfdr <- p.adjust(agexses_scaled_yeo_betas$agexses_pvals,method = "fdr")
 agexses_scaled_yeo_betas$Yeonet <- 1:7
 outfile <- data.frame(age_scaled_yeo_betas, agexses_scaled_yeo_betas)
-write.csv(outfile, paste0(clustcodir, "yeo_network_betas_scaled.csv"))
-
-###### FIGURE 3 #######
-yeo_betas <- read.csv(paste0(clustcodir, "yeo_network_betas_scaled.csv"))
-#make a dummy variable to rank them
-par(mfrow=c(2,2))
-#Make age plot
-yeo_betas$effect_age <- base::rank(-yeo_betas$age_betas)
-#RGB colors of Yeo brain
-age_colors <- c(rgb(196, 58, 250, maxColorValue = 255), rgb(205, 62, 78, maxColorValue = 255), rgb(0, 118, 14, maxColorValue = 255), 
-                rgb(230, 148, 34, maxColorValue = 255), rgb(70, 130, 180, maxColorValue = 255), 
-                rgb(120, 18, 134, maxColorValue = 255), rgb(220,248,164, maxColorValue = 255))
-#all Age betas are significant, need asterisks
-Fig2_Age_By_Yeo_Sys <- ggplot(data=yeo_betas, aes(effect_age, age_betas)) +geom_bar(fill=age_colors, col="black",stat="identity", size=0)
-Fig2_Age_By_Yeo_Sys<-Fig2_Age_By_Yeo_Sys + scale_x_continuous(breaks=1:7, labels=c("Ventral Attention","Default","Dorsal Attention","Frontoparietal","Somatomotor","Visual","Limbic"))+ 
-  theme(axis.text = element_text(size= 12), plot.title = element_text(hjust = 0.5, face = "bold")) +labs(title="Age Effects Across Cognitive Systems", x="", y="Standardized Coefficients for Age Effect")+ 
-  theme(panel.border = element_blank(),axis.line.y=element_line(),panel.background = element_rect(fill = "white"))
-Fig2_Age_By_Yeo_Sys+ geom_errorbar(data=yeo_betas, aes(ymin=age_betas-age_se, ymax=age_betas+age_se), width=.3, size=1.5)
-
-#Make age by SES plot
-yeo_betas$effect_age_ses <- base::rank(-yeo_betas$agexses_betas)
-age_ses_colors <- c(rgb(220,248,164, maxColorValue = 255), rgb(70, 130, 180, maxColorValue = 255), rgb(196, 58, 250, maxColorValue = 255), 
-                    rgb(230, 148, 34, maxColorValue = 255), rgb(205, 62, 78, maxColorValue = 255), 
-                    rgb(0, 118, 14, maxColorValue = 255), rgb(120, 18, 134, maxColorValue = 255))
-#all Agexses betas are significant except visual (last), doesn't need asterisks
-Fig2_Age_SES_By_Yeo_Sys <- ggplot(data=yeo_betas, aes(effect_age_ses, agexses_betas)) + geom_bar(size=0, fill=age_ses_colors, col="black",stat="identity",position=position_dodge())
-Fig2_Age_SES_By_Yeo_Sys<-Fig2_Age_SES_By_Yeo_Sys + scale_x_continuous(breaks=1:7, labels=c("Limbic","Somatomotor","Ventral Attention","Frontoparietal","Default","Dorsal Attention","Visual"))+ theme(axis.text = element_text(size= 12), plot.title = element_text(hjust = 0.5, face = "bold")) +
-  labs(title="Age x SES Effects Across Cognitive Systems", x="", y="Standardized Coefficients for Age x SES Effect")+ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_rect(fill = "white"), panel.border= element_blank())
-Fig2_Age_SES_By_Yeo_Sys+ geom_errorbar(data=yeo_betas, aes(ymin=agexses_betas-agexses_se, ymax=agexses_betas+agexses_se), width=.3, size=1.5)
+write.csv(outfile, paste0(clustcodir, "yeo_network_betas_scaled_small_sample.csv"))
 
 #############
 ##### FIGURE 4: REGIONAL EFFECTS #######
@@ -354,7 +362,7 @@ Fig2_Age_SES_By_Yeo_Sys+ geom_errorbar(data=yeo_betas, aes(ymin=agexses_betas-ag
 #from file 05_clustco_node_wise.m 
 
 #import data on clustering coef for all nodes for all subjects
-clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
+clustcodir="~/Dropbox/bassett_lab/clustco_paper/"
 full_nodewise_clustco<-read.csv(paste0(clustcodir,"n1012_clust_co_nodewise_by_subj.csv"))
 
 full_nodewise_clustco<-dplyr::rename(full_nodewise_clustco, scanid=subjlist_2)
@@ -610,7 +618,7 @@ write.csv(outfile, paste0("~/Dropbox (Personal)/bassett_lab/clustco_paper/nodewi
 #PULL OUT NODES WITH HIGHEST INTERACTION EFFECT, PLOT THESE ONLY
 dim(fdr_sig_nodes_reho_lm_AgexSES)
 #make node names to pull out from the full matrix
-nodes<-fdr_sig_nodes_lm_AgexSES$Node_index
+nodes<-fdr_sig_nodes_reho_lm_AgexSES$Node_index
 
 nodes[1] <- "..8"
 nodes[2:21]=c(".32", ".36", ".37", ".38", ".39", ".40", ".41", ".43", ".53", ".55", ".56", ".57", ".58", ".59", ".60", ".63", ".65", ".76", ".88", ".94")
@@ -619,7 +627,7 @@ node_names<-paste("avgclustco_both_",nodes, sep="")
 master <- master %>% ungroup(.) %>%  mutate(., mean_peaks_reho=rowMeans(select(.,one_of(fdr_sig_nodes_reho_lm_AgexSES$Names))))
 #analyze and plot
 peak_areas_only<- lm(mean_peaks_reho ~ ageAtScan1yrs+sex+race2+restRelMeanRMSMotion+ageAtScan1yrs*envSEShigh, data=master)
-peak_areas_only2<- lm(scale(mean_peaks_reho) ~ scale(ageAtScan1yrscent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1yrscent)*envSEShigh, data=master)
+peak_areas_only2<- lm(scale(mean_peaks_reho) ~ scale(ageAtScan1yrscent)+sex+race2+scale(restRelMeanRMSMotion)+scale(ageAtScan1yrscent)*envSEShigh, data=master)
 
 #plot it
 visreg(peak_areas_only, "ageAtScan1yrs", by ="envSEShigh", main="Mean Clustering Coefficient of Peak Regions",
@@ -664,7 +672,7 @@ file7<-dplyr::rename(file7, scanid=subjlist_2)
 master<-right_join(file7, master, by ="scanid")
 #look at each bin for distance-dependence effect of age x SES in linear model
 covariates=" ~ ageAtScan1cent+sex+race2+restRelMeanRMSMotion+envSEShigh+ageAtScan1cent*envSEShigh"
-m <- mclapply(names(master[,5:23]), function(x) {as.formula(paste(x, covariates, sep=""))},mc.cores=2)
+m <- mclapply(names(master[,3:23]), function(x) {as.formula(paste(x, covariates, sep=""))},mc.cores=2)
 distance_bins_agexses_betas <- mclapply(m, function(x) { lm.beta(lm(formula = x,data=master))$standardized.coefficient[8]},mc.cores=1)
 distance_bins_agexses_betas <- as.data.frame(distance_bins_agexses_betas)
 distance_bins_agexses_betas <- t(distance_bins_agexses_betas)
@@ -672,9 +680,6 @@ distance_bins_agexses_betas <- as.data.frame(distance_bins_agexses_betas)
 x<-cbind(distance_bins_agexses_betas, as.character(m))
 colnames(x) <- c("beta_for_agexses_interaction", "formula")
 write.csv(x, file= "~/Dropbox (Personal)//bassett_lab/analyses/csv/distance_weight_binned_agexses_betas_small_sample.csv")
-
-x %>% filter(.,formula == starts_with("avgweight"))
-avgweight_only<-x[grep("avgweight*", x$formula),]
 
 # INCLUDE AVERAGE WEIGHT IN EACH MODEL for distance dependence 
 t0to1model_clustco_distances<-lm(scale(avgclustco_both_0to1_longest) ~ scale(ageAtScan1cent) + sex + race2 + scale(avgweight_0to1_longest)+ scale(restRelMeanRMSMotion) + envSEShigh + scale(ageAtScan1cent) * envSEShigh, data=master)
@@ -747,5 +752,27 @@ plot(1:10,revers_distance_bins_agexses_null_betas,main="",col="black", xlab="",
      bg="blue",ylim = c(-0.10, 0.20),ylab="", pch=23)
 arrows(1:10, as.numeric(revers_distance_bins_agexses_null_betas)-as.numeric(revers_distance_bins_agexses_null_se), 1:10, as.numeric(revers_distance_bins_agexses_null_betas)+as.numeric(revers_distance_bins_agexses_null_se), length=0.05, angle=90, code=3)
 
-### Betas of edges within and between sig nodes
+###### Betas of edges within and between sig nodes ######
+
 # see file 10_make_all_subs_all_edges.m and 11_averagebetas_within_26_nodes_outside.m
+
+edge_weights <- read.csv(paste0(clustcodir,"zedges_for_each_subj_64621.csv"))
+edge_weights <- as.data.frame(edge_weights)
+#join to master with covariates
+edge_weights<-dplyr::rename(edge_weights, scanid=subjlist_2)
+edge_weights<-right_join(edge_weights, master, by ="scanid")
+
+covariates=" ~ scale(ageAtScan1cent)+sex+race2+scale(restRelMeanRMSMotion)+envSEShigh+scale(ageAtScan1cent)*envSEShigh"
+m <- mclapply(names(edge_weights[,3:64263]), function(x) {as.formula(paste("scale(", x, ")", covariates, sep=""))},mc.cores=2)
+edge_betas_agexses <- mclapply(m, function(x) { summary(lm(formula = x,data=edge_weights))$coefficients[8,1]},mc.cores=2)
+edge_betas_agexses <- as.data.frame(edge_betas_agexses)
+edge_betas_agexses <- t(edge_betas_agexses)
+edge_betas_agexses <- as.data.frame(edge_betas_agexses)
+colnames(edge_betas_agexses) <- "edge_betas_agexses"
+edge_betas_agexses$Node_index <- 1:64261
+
+#write out the betas by edge back into a matrix
+my_matrix<-matrix(0,359,359)
+my_matrix[upper.tri(my_matrix, diag=FALSE)]<-edge_betas_agexses$edge_betas_agexses
+#write out a file to read in brainnetviewer
+write.csv(my_matrix,paste0(clustcodir,"edge_betas_agexses_int_scaled_small_sample.csv"))
