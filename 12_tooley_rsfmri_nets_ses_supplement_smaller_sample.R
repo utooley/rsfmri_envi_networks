@@ -102,15 +102,6 @@ master$medu1cent=(master$medu1-mean(master$medu1[!is.na(master$medu1)]))
 master$paredu1 <- master$medu1+master$fedu1
 master$paredu1cent=(master$paredu1-mean(master$paredu1[!is.na(master$paredu1)]))
 
-#########
-##### Sample Characterization ####
-#########
-t.test(ageAtScan1yrs~envSEShigh,data=master)
-t.test(PercentInPoverty~envSEShigh, data=master)
-t.test(PercentMarried~envSEShigh, data=master)
-t.test(MedianFamilyIncome~envSEShigh, data=master)
-chisq.test(table(master$envSEShigh, master$sex))
-
 ##########
 ##### Global effects on rs-fMRI topology ####
 ##########
