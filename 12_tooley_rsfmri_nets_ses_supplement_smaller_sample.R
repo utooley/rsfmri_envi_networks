@@ -745,7 +745,7 @@ arrows(1:10, as.numeric(revers_distance_bins_agexses_null_betas)-as.numeric(reve
 
 ###### Betas of edges within and between sig nodes ######
 
-# see file 10_make_all_subs_all_edges.m and 11_averagebetas_within_26_nodes_outside.m
+# see file 10_make_all_subs_all_edges.m and 11_averagebetas_within_sig_nodes_outside_small_sample.m
 
 edge_weights <- read.csv(paste0(clustcodir,"zedges_for_each_subj_64621.csv"))
 edge_weights <- as.data.frame(edge_weights)

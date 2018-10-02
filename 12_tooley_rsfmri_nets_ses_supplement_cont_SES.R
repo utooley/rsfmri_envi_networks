@@ -247,9 +247,9 @@ master_long$yeo_sys<-factor(master_long$yeo_sys)
 
 ### FOR AGE BETAS ####
 #look at the age effect and the age x system interaction-do age effects differ across systems?
-l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys, data=master_long)
+l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEScent+restRelMeanRMSMotion+yeo_sys, data=master_long)
 summary(l1)
-l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+yeo_sys*ageAtScan1yrscent, data=master_long)
+l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEScent+restRelMeanRMSMotion+yeo_sys+yeo_sys*ageAtScan1yrscent, data=master_long)
 summary(l2)
 #compare a model with the interaction to one without
 lrtest(l1,l2)
@@ -749,4 +749,4 @@ plot(1:10,revers_distance_bins_agexses_null_betas,main="",col="black", xlab="",
 arrows(1:10, as.numeric(revers_distance_bins_agexses_null_betas)-as.numeric(revers_distance_bins_agexses_null_se), 1:10, as.numeric(revers_distance_bins_agexses_null_betas)+as.numeric(revers_distance_bins_agexses_null_se), length=0.05, angle=90, code=3)
 
 ### Betas of edges within and between sig nodes
-# see file 10_make_all_subs_all_edges.m and 11_averagebetas_within_26_nodes_outside.m
+# see file 10_make_all_subs_all_edges.m and 11_averagebetas_within_sig_nodes_outside.m
