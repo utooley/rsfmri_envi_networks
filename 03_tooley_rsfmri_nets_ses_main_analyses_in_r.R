@@ -33,6 +33,15 @@ clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
 analysis_dir="~/Documents/bassett_lab/tooleyEnviNetworks/analyses/"
 reho_dir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
 
+#Local mackey computer
+setwd("~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/")
+subinfodir="~/Documents/bassett_lab/tooleyEnviNetworks/data/subjectData/"
+sublistdir="~/Documents/bassett_lab/tooleyEnviNetworks/subjectLists/"
+qadir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
+clustcodir="~/Dropbox/bassett_lab/clustco_paper/"
+analysis_dir="~/Documents/bassett_lab/tooleyEnviNetworks/analyses/"
+reho_dir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
+
 #get subjlist
 subjlist<-read.csv(paste0(sublistdir,"n1012_healthT1RestExclude_parcels.csv"))
 
@@ -233,6 +242,25 @@ subject_clustco_yeo_system[,c(1:8)]<-sapply(subject_clustco_yeo_system[,c(1:8)],
 subject_clustco_yeo_system[,c(1:8)]<-sapply(subject_clustco_yeo_system[,c(1:8)], as.numeric)
 master<-right_join(subject_clustco_yeo_system, master, by ="scanid")
 
+##### Test rather as an age x SES x system interaction, per Reviewer 3 ######
+
+#gather the rows of Yeo systems into one long column
+subject_clustco_yeo_system_long <- gather(subject_clustco_yeo_system, key="yeo_sys", value="avgclustco_both_yeosys", -scanid)
+#join to master data
+master_long <- right_join(master, subject_clustco_yeo_system_long, by="scanid")
+#make sure yeo system is a factor variable and not a character variable
+master_long$yeo_sys<-factor(master_long$yeo_sys)
+
+### FOR AGE BETAS ####
+
+#look at the age effect and the age x system interaction-do age effects differ across systems?
+l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys, data=master_long)
+summary(l1)
+l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+yeo_sys*ageAtScan1yrscent, data=master_long)
+summary(l2)
+#compare a model with the interaction to one without
+lrtest(l1,l2)
+
 ### FOR AGE BETAS ####
 #Yeo 1
 Yeo1 <- lm(scale(Yeo_1) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+envSEShigh+scale(restRelMeanRMSMotion), data=master)
@@ -269,6 +297,13 @@ outfile <- data.frame(age_scaled_yeo_betas, agexses_scaled_yeo_betas)
 write.csv(outfile, paste0(clustcodir, "yeo_network_betas_scaled.csv"))
 
 #### FOR AGE X SES BETAS ######
+#look at the agex SES effect and the age x SESx system interaction-do age effects differ across systems?
+l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+ageAtScan1yrscent*envSEShigh, data=master_long)
+summary(l1)
+l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrscent*envSEShigh*yeo_sys, data=master_long)
+summary(l2)
+anova(l1, l2)
+lrtest(l1,l2)
 #Yeo 1
 Yeo1_scaled <- lm(scale(Yeo_1) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*envSEShigh, data=master)
 summary(Yeo1_scaled)
@@ -337,7 +372,7 @@ Fig2_Age_SES_By_Yeo_Sys+ geom_errorbar(data=yeo_betas, aes(ymin=agexses_betas-ag
 #from file 05_clustco_node_wise.m 
 
 #import data on clustering coef for all nodes for all subjects
-clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
+clustcodir="~/Dropbox/bassett_lab/clustco_paper/"
 full_nodewise_clustco<-read.csv(paste0(clustcodir,"n1012_clust_co_nodewise_by_subj.csv"))
 
 full_nodewise_clustco<-dplyr::rename(full_nodewise_clustco, scanid=subjlist_2)

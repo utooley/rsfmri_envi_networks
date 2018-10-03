@@ -34,6 +34,15 @@ clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
 analysis_dir="~/Documents/bassett_lab/tooleyEnviNetworks/analyses/"
 reho_dir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
 
+#Local mackey computer
+setwd("~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/")
+subinfodir="~/Documents/bassett_lab/tooleyEnviNetworks/data/subjectData/"
+sublistdir="~/Documents/bassett_lab/tooleyEnviNetworks/subjectLists/"
+qadir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
+clustcodir="~/Dropbox/bassett_lab/clustco_paper/"
+analysis_dir="~/Documents/bassett_lab/tooleyEnviNetworks/analyses/"
+reho_dir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
+
 #get subjlist
 subjlist<-read.csv(paste0(sublistdir,"n1012_healthT1RestExclude_parcels.csv"))
 
@@ -364,7 +373,7 @@ Fig2_Age_SES_By_Yeo_Sys+ geom_errorbar(data=yeo_betas, aes(ymin=agexses_betas-ag
 #from file 05_clustco_node_wise.m 
 
 #import data on clustering coef for all nodes for all subjects
-clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
+clustcodir="~/Dropbox/bassett_lab/clustco_paper/"
 full_nodewise_clustco<-read.csv(paste0(clustcodir,"n1012_clust_co_nodewise_by_subj.csv"))
 
 full_nodewise_clustco<-dplyr::rename(full_nodewise_clustco, scanid=subjlist_2)
@@ -389,10 +398,10 @@ full_nodewise_clustco$ageatscansqdem <- (full_nodewise_clustco$ageAtScan1-mean(f
 full_nodewise_clustco$ageatscansq <- (full_nodewise_clustco$ageAtScan1)^2
 full_nodewise_clustco$ageAtScan1yrs<-(full_nodewise_clustco$ageAtScan1)/12
 #split SES on the median 
-full_nodewise_clustco$scale(envSES)=NA
-full_nodewise_clustco$scale(envSES)[full_nodewise_clustco$envSES >= 0.0178] <- 1
-full_nodewise_clustco$scale(envSES)[full_nodewise_clustco$envSES < 0.0178]<- 0
-full_nodewise_clustco$scale(envSES)<-factor(full_nodewise_clustco$scale(envSES), labels=c("Low", "High"), ordered=TRUE)
+full_nodewise_clustco$envSEShigh=NA
+full_nodewise_clustco$envSEShigh[full_nodewise_clustco$envSES >= 0.0178] <- 1
+full_nodewise_clustco$envSEShigh[full_nodewise_clustco$envSES < 0.0178]<- 0
+full_nodewise_clustco$envSEShigh<-factor(full_nodewise_clustco$envSEShigh, labels=c("Low", "High"), ordered=TRUE)
 
 #should potentially be centering the age and envSES variables before looking at interactions
 full_nodewise_clustco$ageAtScan1cent<-(full_nodewise_clustco$ageAtScan1-mean(full_nodewise_clustco$ageAtScan1))

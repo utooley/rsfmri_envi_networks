@@ -34,6 +34,15 @@ clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
 analysis_dir="~/Documents/bassett_lab/tooleyEnviNetworks/analyses/"
 reho_dir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
 
+#Local mackey computer
+setwd("~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/")
+subinfodir="~/Documents/bassett_lab/tooleyEnviNetworks/data/subjectData/"
+sublistdir="~/Documents/bassett_lab/tooleyEnviNetworks/subjectLists/"
+qadir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
+clustcodir="~/Dropbox/bassett_lab/clustco_paper/"
+analysis_dir="~/Documents/bassett_lab/tooleyEnviNetworks/analyses/"
+reho_dir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
+
 #get subjlist
 subjlist<-read.csv(paste0(sublistdir,"n885_LTNexclude.csv"))
 
@@ -364,7 +373,7 @@ Fig2_Age_SES_By_Yeo_Sys+ geom_errorbar(data=yeo_betas, aes(ymin=agexses_betas-ag
 #from file 05_clustco_node_wise.m 
 
 #import data on clustering coef for all nodes for all subjects
-clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
+clustcodir="~/Dropbox/bassett_lab/clustco_paper/"
 full_nodewise_clustco<-read.csv(paste0(clustcodir,"n1012_clust_co_nodewise_by_subj.csv"))
 
 full_nodewise_clustco<-dplyr::rename(full_nodewise_clustco, scanid=subjlist_2)
@@ -780,5 +789,13 @@ my_matrix<-matrix(0,359,359)
 my_matrix[upper.tri(my_matrix, diag=FALSE)]<-edge_betas_agexses$edge_betas_agexses
 #write out a file to read in brainnetviewer
 write.csv(my_matrix,paste0(clustcodir,"edge_betas_agexses_int_scaled_small_sample_cont_ses.csv"))
+
+###############
+### SPATIAL CORRESPONDANCE ###
+##############
+matrix <- data.frame(sig_nodes_lm_AgexSES_main_analyses$fdr_corrected, sig_nodes_lm_AgexSES_small_sample$fdr_corrected, sig_nodes_lm_AgexSES_cont_ses$fdr_corrected, sig_nodes_lm_AgexSES_small_sample_cont_ses$fdr_corrected)
+
+mat <- corr.test(matrix, method = "spearman")
+write.csv(mat$r, paste0(clustcodir, "spatial_extent_of_corres_correlations.csv"))
 
 

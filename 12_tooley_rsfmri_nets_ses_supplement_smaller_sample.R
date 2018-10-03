@@ -307,12 +307,11 @@ write.csv(outfile, paste0(clustcodir, "yeo_network_betas_scaled.csv"))
 #look at the agex SES effect and the age x SESx system interaction-do age effects differ across systems?
 l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+ageAtScan1yrscent*envSEShigh, data=master_long)
 summary(l1)
-
 l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrscent*envSEShigh*yeo_sys, data=master_long)
 summary(l2)
-
 anova(l1, l2)
 lrtest(l1,l2)
+
 #Yeo 1
 Yeo1_scaled <- lm(scale(Yeo_1) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*envSEShigh, data=master)
 summary(Yeo1_scaled)
