@@ -108,6 +108,7 @@ t.test(ageAtScan1yrs~envSEShigh,data=master)
 t.test(PercentInPoverty~envSEShigh, data=master)
 t.test(PercentMarried~envSEShigh, data=master)
 t.test(MedianFamilyIncome~envSEShigh, data=master)
+cor.test(master$restNSpikesMotion, master$envSES)
 chisq.test(table(master$envSEShigh, master$sex))
 
 #Is average weight higher in females or is gender related to motion?
@@ -501,12 +502,17 @@ master <- master %>% rowwise() %>% mutate(mean_reho=mean(rest_glasser_reho_Right
 summary(master$mean_reho)
 
 #are reho and clustco correlated?
-cor.test(master$mean_reho, master$avgclustco_both)
+cor.test(master$mean_reho, master$avgclustco_both, method = "spearman")
 #what about when controlling for other covariates?
 library(ppcor) #this will mask dplyr
 temp<-cbind(master$ageAtScan1cent,as.factor(master$sex), as.factor(master$race2), master$restRelMeanRMSMotion)
 pcor.test(master$avgclustco_both, master$mean_reho, temp)
 
+#is motion related to reho?
+cor.test(master$mean_reho, master$restRelMeanRMSMotion)
+l <- lm(mean_reho~ageAtScan1cent+race2+sex+restRelMeanRMSMotion, data=master)
+summary(l)
+lm.beta(l)
 ### WHOLE BRAIN REHO MODEL ###
 l <- lm(mean_reho~ageAtScan1cent+race2+sex+restRelMeanRMSMotion+envSEShigh, data=master)
 summary(l)
@@ -767,7 +773,7 @@ arrows(1:10, as.numeric(revers_distance_bins_agexses_null_betas)-as.numeric(reve
 # see file 10_make_all_subs_all_edges.m and 11_averagebetas_within_26_nodes_outside.m
 
 ###############
-### FIGURE 6: SENSITIVITY ANALYSIS ###
+### FIGURE 6: SENSITIVITY ANALYSIS LTN SAMPLE ###
 ##############
 ### IMPORT DATA
 # Get demographics to control for
@@ -781,6 +787,8 @@ file3<-read.csv(paste0(qadir, "n1601_RestQAData_20170509.csv"))
 file4<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_sub_net_meas_signed.csv")
 #rename the second column of the network statistics file to be 'scanid' so it matches the other files
 file4<-dplyr::rename(file4, scanid=subjlist_2)
+#get the health data to examine the age x SES x psychoactive medication history reviewer comment
+file5 <- read.csv(paste0(subinfodir, "n1601_health_20170421.csv"))
 
 #use LTN exclude critera
 subjlist<-read.csv(paste0(sublistdir,"n885_LTNexclude.csv"))
@@ -789,6 +797,7 @@ master<-right_join(file1, subjlist, by ="scanid")
 master<-right_join(file2,master, by="scanid")
 master<-right_join(file3, master, by= "scanid")
 master<-right_join(file4, master, by ="scanid")
+master<-right_join(file5, master, by ="scanid")
 
 #### DATA CLEANING
 
@@ -801,6 +810,8 @@ master<-master %>% dplyr::select(., -c(bblid.y, bblid.x, bblid.y.y, subjlist_1))
 master$race<-factor(master$race)
 master$race2<-factor(master$race2, labels=c("White", "Black", "Other"))
 master$sex<-factor(master$sex, labels=c("Male", "Female"))
+#make LTN exclude a factor as it is coding for history of medication use or not
+master$ltnExcludev2 <- factor(master$ltnExcludev2, labels = c("No history", "History of psychoactive med use"))
 
 #make an age squared variable
 master$ageatscansqdem <- (master$ageAtScan1-mean(master$ageAtScan1))^2
@@ -833,3 +844,112 @@ lm.beta(l2)
 anova(l,l2,test="Chisq")
 
 lrtest(l,l2)
+
+###################################################################################
+#### EXAMINE WHETHER INTERACTION WITH MEDICATION USE/PSYCHIATRIC HISTORY ###
+################################################################################
+
+subjlist<-read.csv(paste0(sublistdir,"n1012_healthT1RestExclude_parcels.csv"))
+#get the health data to examine the age x SES x psychoactive medication history reviewer comment
+file5 <- read.csv(paste0(subinfodir, "n1601_health_20170421.csv"))
+#Join all files together
+master<-right_join(file1, subjlist, by ="scanid")
+master<-right_join(file2,master, by="scanid")
+master<-right_join(file3, master, by= "scanid")
+master<-right_join(file4, master, by ="scanid")
+master<-right_join(file5, master, by ="scanid")
+
+#### DATA CLEANING
+
+#eliminate extraneous columns
+master<-master %>% dplyr::select(., -c(restExcludeVoxelwise, restNoDataExclude))
+master<-master %>% dplyr::select(., -c(restRelMeanRMSMotionExclude:restRpsMapCorrectionNotApplied))
+master<-master %>% dplyr::select(., -c(bblid.y, bblid.x, bblid.y.y, subjlist_1))
+
+#make sure factor variables are factors
+master$race<-factor(master$race)
+master$race2<-factor(master$race2, labels=c("White", "Black", "Other"))
+master$sex<-factor(master$sex, labels=c("Male", "Female"))
+#make LTN exclude a factor as it is coding for history of medication use or not
+master$ltnExcludev2 <- factor(master$ltnExcludev2, labels = c("No history", "History of psychoactive med use"))
+
+#make an age squared variable
+master$ageatscansqdem <- (master$ageAtScan1-mean(master$ageAtScan1))^2
+master$ageatscansq <- (master$ageAtScan1)^2
+master$ageAtScan1yrs<-(master$ageAtScan1)/12
+#should be centering the age and envSES variables before looking at interactions
+master$ageAtScan1cent<-(master$ageAtScan1-mean(master$ageAtScan1))
+master$ageAtScan1yrscent<-(master$ageAtScan1yrs-mean(master$ageAtScan1yrs))
+#split SES on the median for this sample
+summary(master$envSES)
+master$envSEShigh=NA
+master$envSEShigh[master$envSES >= 0.0178] <- 1
+master$envSEShigh[master$envSES < 0.0178]<- 0
+master$envSEShigh<-factor(master$envSEShigh, labels=c("Low", "High"), ordered=TRUE)
+#center
+master$envSEScent<-(master$envSES-mean(master$envSES))
+master$medu1cent=(master$medu1-mean(master$medu1[!is.na(master$medu1)]))
+
+### MED SPLIT SES ###
+### EXAMINE INTERACTIONS WITH AGE ###
+
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion, data=master)
+summary(l)
+lm.beta(l)
+
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ltnExcludev2, data=master)
+summary(l)
+lm.beta(l)
+
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ltnExcludev2*ageAtScan1yrs, data=master)
+summary(l)
+lm.beta(l)
+
+### EXAMINE INTERACTIONS WITH AGE AND SES ##
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion, data=master)
+summary(l)
+lm.beta(l)
+
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ltnExcludev2*envSEShigh, data=master)
+summary(l)
+lm.beta(l)
+
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ltnExcludev2+ageAtScan1yrs*envSEShigh, data=master)
+summary(l)
+lm.beta(l)
+
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ltnExcludev2*ageAtScan1yrs*envSEShigh, data=master)
+summary(l)
+lm.beta(l)
+
+### CONTINUOUS SES ###
+### EXAMINE INTERACTIONS WITH AGE ###
+
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEScent+restRelMeanRMSMotion, data=master)
+summary(l)
+lm.beta(l)
+
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEScent+restRelMeanRMSMotion+ltnExcludev2, data=master)
+summary(l)
+lm.beta(l)
+
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEScent+restRelMeanRMSMotion+ltnExcludev2*ageAtScan1yrs, data=master)
+summary(l)
+lm.beta(l)
+
+### EXAMINE INTERACTIONS WITH AGE AND SES ##
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEScent+restRelMeanRMSMotion, data=master)
+summary(l)
+lm.beta(l)
+
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEScent+restRelMeanRMSMotion+ltnExcludev2*envSEScent, data=master)
+summary(l)
+lm.beta(l)
+
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEScent+restRelMeanRMSMotion+ltnExcludev2+ageAtScan1yrs*envSEScent, data=master)
+summary(l)
+lm.beta(l)
+
+l <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+envSEScent+restRelMeanRMSMotion+ltnExcludev2*ageAtScan1yrs*envSEScent, data=master)
+summary(l)
+lm.beta(l)
