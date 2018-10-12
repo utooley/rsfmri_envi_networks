@@ -137,6 +137,11 @@ l.beta<- lm.beta(l)
 lmageplot<-visreg(l, "ageAtScan1yrs",
                   main="Average Clustering Coefficient", xlab="Age in Years (centered)", ylab="Average Clustering Coefficient (partial residuals)")
 
+#partial correlation for Fig 2
+temp<-cbind(as.factor(master$sex), as.factor(master$race2), master$avgweight, master$restRelMeanRMSMotion, as.factor(master$envSEShigh))
+library(ppcor)
+pcor.test(master$avgclustco_both, master$ageAtScan1cent, temp, method = "spearman")
+
 #linear model med split
 l2 <- lm(avgclustco_both ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
 summary(l2)
@@ -186,8 +191,13 @@ lm.beta(l)
 lmageplot<-visreg(l, "ageAtScan1yrs",
                   main="Average Clustering Coefficient", xlab="Age in Years (centered)", ylab="Average Clustering Coefficient (partial residuals)")
 
+#partial correlation for Fig 2
+temp<-cbind(as.factor(master$sex), as.factor(master$race2), master$avgweight, master$restRelMeanRMSMotion, as.factor(master$envSEShigh))
+library(ppcor)
+pcor.test(master$modul, master$ageAtScan1cent, temp, method = "spearman")
+
 #linear model med split
-l2 <- lm(modul ~ ageAtScan1yrs+sex+race2+avgweight.x+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
+l2 <- lm(modul ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
 summary(l2)
 lm.beta(l2)
 anova(l,l2,test="Chisq")
