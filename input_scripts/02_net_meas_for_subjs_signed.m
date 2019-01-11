@@ -1,8 +1,9 @@
 %% SETUP
 %Running Locally
-datadir=fullfile('~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/restNetwork_GlasserPNC/GlasserPNCzNetworks/')
-listdir='~/Documents/bassett_lab/tooleyEnviNetworks/subjectLists'
-outdir='~/Documents/bassett_lab/tooleyEnviNetworks/analyses'
+datadir=fullfile('~/Documents/projects/in_progress/tooleyEnviNetworks/data/rest/restNetwork_GlasserPNC/GlasserPNCzNetworks/')
+listdir='~/Documents/projects/in_progress/tooleyEnviNetworks/subjectLists'
+outdir='~/Documents/projects/in_progress/tooleyEnviNetworks/analyses'
+parceldir='~/Documents/projects/in_progress/tooleyEnviNetworks/parcels'
 
 %Running Locally Bassett
 datadir=fullfile('~/Documents/tooleyEnviNetworks/data/rest/restNetwork_GlasserPNC/GlasserPNCzNetworks/')
@@ -16,10 +17,15 @@ outdir='/data/jag/bassett-lab/tooleyEnviNetworks/analyses'
 %Load each Pearson FC matrix
 %ursula(:,:,1)=load(fullfile(datadir,'2632_GlasserPNC_network.txt'))
 
-%for each subject
 %read the subject list in without the header
 subjlist=csvread(fullfile(listdir,'n1012_healthT1RestExclude_parcels.csv'),1, 0 )
+%read in the mapping of Glasser to Yeo networks
+yeo_mapping=csvread(fullfile(parceldir, 'Glasser_to_Yeo.csv'),1,1 )
+%can't insert a row because it will throw things off with 0's.
+%remove the extra row from Yeo, it's 103
+yeo_mapping(103,:)=[]
 
+%for each subject
 for n=1:length(subjlist)
     sub=subjlist(n,2);
     %load Pearson correlation matrix
@@ -55,11 +61,25 @@ avgclustco_both(n,1)=mean(clustering_coef_wu_sign(subfcmat,3));
 [M Q]=community_louvain(subfcmat, 1, [], 'negative_asym');
 modul(n,1)=Q;
 
+%Network/system segregation per Chan et al. 2018    
+%Calculate system segregation
+[S W B]=segregation(subfcmat, yeo_mapping);
+sys_segreg(n,1)=S;
+
+%Threshold networks for positive-only weights, as Chan 2018 did, and then
+%calculate system segregation
+subfcmatthresh=threshold_absolute(subfcmat, 0);
+[S W B]=segregation(subfcmatthresh, yeo_mapping);
+sys_segreg_posonly(n,1)=S;
 end
 
 %% Write outfiles
 outfile=dataset(subjlist, avgweight, avgclustco_both, modul)
 export(outfile,'File',fullfile(outdir,'n1012_sub_net_meas_signed.csv'),'Delimiter',',')
+
+%% Write system segregation outfile
+outfile=dataset(subjlist, avgweight, avgclustco_both, modul, sys_segreg, sys_segreg_posonly)
+export(outfile,'File',fullfile(outdir,'n1012_sub_net_meas_signed_w_segregation.csv'),'Delimiter',',')
 
 %%just in case
 %csvwrite(fullfile(outdir, 'avgclustc.csv'),avgclustc)
