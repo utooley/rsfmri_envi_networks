@@ -31,6 +31,15 @@ qadir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
 clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
 analysis_dir="~/Documents/bassett_lab/tooleyEnviNetworks/analyses/"
 
+#Local mackey computer
+setwd("~/Documents/projects/in_progress/tooleyEnviNetworks/data/rest/")
+subinfodir="~/Documents/projects/in_progress/tooleyEnviNetworks/data/subjectData/"
+sublistdir="~/Documents/projects/in_progress/tooleyEnviNetworks/subjectLists/"
+qadir="~/Documents/projects/in_progress/tooleyEnviNetworks/data/rest/"
+clustcodir="~/Dropbox/projects/in_progress/tooleyEnviNetworks/code/clustco_paper/"
+analysis_dir="~/Documents/projects/in_progress/tooleyEnviNetworks/analyses/"
+reho_dir="~/Documents/projects/in_progress/tooleyEnviNetworks/data/rest/"
+
 #get subjlist
 subjlist<-read.csv(paste0(sublistdir,"n1012_healthT1RestExclude_parcels.csv"))
 
@@ -42,7 +51,7 @@ file3<-read.csv(paste0(qadir, "n1601_RestQAData_20170509.csv"))
 #Get the network stats file with the different clustering coefficients
 file4<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_net_meas_normed3clustcoefs_signed.csv")
 #get the original file with modularity in it
-file5<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_sub_net_meas_signed.csv")
+file5<-read.csv("~/Documents/projects/in_progress//tooleyEnviNetworks/analyses/n1012_sub_net_meas_signed.csv")
 #rename the second column of the network statistics file to be 'scanid' so it matches the other files
 file4<-dplyr::rename(file4, scanid=subjlist_2)
 file5<-dplyr::rename(file5, scanid=subjlist_2)
@@ -218,6 +227,60 @@ lmageplot<-visreg(l, "ageAtScan1yrs",
 
 #linear model med split
 l2 <- lm(modul ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
+summary(l2)
+lm.beta(l2)
+
+##############
+#### NETWORK SEGREGATION PER CHAN ET AL. 2018 ####
+##############
+#### SIGNED MATRICES ####
+#see also file 02_net_meas_for_subjs_signed.m for input
+
+#read in file, add to rest of data
+file7 <- read.csv("~/Dropbox (Personal)/projects/in_progress/tooleyenvinetworks/data/n1012_sub_net_meas_signed_w_segregation.csv")
+file7 <- read.csv("~/Dropbox/projects/in_progress/tooleyenvinetworks/data/n1012_sub_net_meas_signed_w_segregation.csv")
+file7<-dplyr::rename(file7, scanid=subjlist_2)
+master <- master %>% dplyr::select(.,- (avgweight:modul)) #remove first set of these variables so names don't overlap, already checked that they are exactly the same
+master<-right_join(file7, master, by ="scanid")
+
+#is system segregation correlated with modularity or avg clustco?
+cor.test(master$modul,master$sys_segreg,method = "spearman")
+cor.test(master$avgclustco_both,master$sys_segreg,method = "spearman")
+
+#when controlling for other variables?
+temp<-cbind(master$ageAtScan1cent, as.factor(master$sex), as.factor(master$race2), master$avgweight, master$restRelMeanRMSMotion, as.factor(master$envSEShigh))
+library(ppcor)
+pcor.test(master$modul, master$sys_segreg, temp, method = "spearman")
+pcor.test(master$avgclustco_both, master$sys_segreg, temp, method = "spearman")
+
+#linear age effect without interaction
+l <- lm(sys_segreg ~ ageAtScan1yrs+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion, data=master)
+summary(l)
+lm.beta(l)
+
+#linear interaction model
+l2 <- lm(sys_segreg ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
+summary(l2)
+lm.beta(l2)
+
+#### THRESHOLDED MATRICES ####
+#is pos system segregation correlated with modularity or avg clustco?
+cor.test(master$modul,master$sys_segreg_posonly,method = "spearman")
+cor.test(master$avgclustco_both,master$sys_segreg_posonly,method = "spearman")
+
+#when controlling for other variables?
+temp<-cbind(master$ageAtScan1cent, as.factor(master$sex), as.factor(master$race2), master$avgweight, master$restRelMeanRMSMotion, as.factor(master$envSEShigh))
+library(ppcor)
+pcor.test(master$modul, master$sys_segreg_posonly, temp, method = "spearman")
+pcor.test(master$avgclustco_both, master$sys_segreg_posonly, temp, method = "spearman")
+
+#linear age effect without interaction
+l <- lm(sys_segreg_posonly ~ ageAtScan1yrs+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion, data=master)
+summary(l)
+lm.beta(l)
+
+#linear interaction model med split
+l2 <- lm(sys_segreg_posonly ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
 summary(l2)
 lm.beta(l2)
 

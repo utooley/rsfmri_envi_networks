@@ -16,6 +16,7 @@ library(gridBase)
 library(ggthemes)
 library(lmtest)
 library(stargazer)
+library(tidyr)
 #not until needed, will mask dplyr select
 library(MASS)
 library(ppcor)
@@ -29,7 +30,7 @@ setwd("~/Documents/projects/in_progress/tooleyEnviNetworks/data/rest/")
 subinfodir="~/Documents/projects/in_progress/tooleyEnviNetworks/data/subjectData/"
 sublistdir="~/Documents/projects/in_progress/tooleyEnviNetworks/subjectLists/"
 qadir="~/Documents/projects/in_progress/tooleyEnviNetworks/data/rest/"
-clustcodir="~/Dropbox (Personal)/projects/in_progress/tooleyenvinetworks/code/clustco_paper/"
+clustcodir="~/Dropbox (Personal)/projects/in_progress/tooleyEnviNetworks/output/"
 analysis_dir="~/Documents/projects/in_progress/tooleyEnviNetworks/output/"
 reho_dir="~/Documents//projects/in_progress/tooleyEnviNetworks/data/rest/"
 
@@ -219,113 +220,6 @@ summary(l)
 l <- lm(avgclustco_both.x ~ ageAtScan1yrs+sex+race2+avgweight.x+modul+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrs*envSEShigh, data=master)
 summary(l)
 
-##### NETWORK SEGREGATION PER CHAN ET AL. 2018 ####
-
-#read in file, add to rest of data
-file7 <- read.csv("~/Dropbox (Personal)/projects/in_progress/tooleyenvinetworks/data/n1012_sub_net_meas_signed_w_segregation.csv")
-file7<-dplyr::rename(file7, scanid=subjlist_2)
-master <- master %>% select(.,- (avgweight:modul)) #remove first set of these variables so names don't overlap, already checked that they are exactly the same
-master<-right_join(file7, master, by ="scanid")
-
-#is system segregation correlated with modularity or avg clustco?
-cor.test(master$modul,master$sys_segreg,method = "spearman")
-cor.test(master$avgclustco_both,master$sys_segreg,method = "spearman")
-
-#when controlling for other variables?
-temp<-cbind(master$ageAtScan1cent, as.factor(master$sex), as.factor(master$race2), master$avgweight, master$restRelMeanRMSMotion, as.factor(master$envSEShigh))
-library(ppcor)
-pcor.test(master$modul, master$sys_segreg, temp, method = "spearman")
-pcor.test(master$avgclustco_both, master$sys_segreg, temp, method = "spearman")
-
-#non-linear relationship with age?
-ageonlyRlrtmodel<-gamm(sys_segreg~s(ageAtScan1cent)+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh, method='REML', data=master)$lme
-l<-exactRLRT(ageonlyRlrtmodel) #yes,there is.
-#What does it look like?
-l <- gam(sys_segreg~s(ageAtScan1cent)+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh, method='REML', data=master)
-summary(l)
-plot.gam(l)
-plotGAM(l, "ageAtScan1cent")
-visreg(l, "ageAtScan1cent")
-ggplot.model(l) #need script gam_plot_code to run
-
-#linear age effect without interaction
-l <- lm(sys_segreg ~ ageAtScan1yrs+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion, data=master)
-summary(l)
-lm.beta(l)
-
-#linear interaction model med split
-l2 <- lm(sys_segreg ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
-summary(l2)
-lm.beta(l2)
-#linear interaction model cont SES
-l2 <- lm(sys_segreg ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSES+ageAtScan1yrs*envSES, data=master)
-summary(l2)
-lm.beta(l2)
-
-#Non-linear model of age
-l <- gam(sys_segreg~s(ageAtScan1cent)+sex+race2+avgweight+restRelMeanRMSMotion+envSES, method='REML', data=master)
-summary(l)
-lm.beta(l)
-
-#Non-linear model of age, med split interaction
-l <- gam(sys_segreg~s(ageAtScan1cent)+s(ageAtScan1cent, by=envSEShigh)+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh, method='REML', data=master)
-summary(l)
-
-#Non-linear model of age, continuous interaction
-l <- gam(sys_segreg~s(ageAtScan1cent)+s(ageAtScan1cent, by=envSES)+sex+race2+avgweight+restRelMeanRMSMotion+envSES, method='REML', data=master)
-summary(l)
-#Looked at it with pbmodcomp elsewhere.
-
-##### NETWORK SEGREGATION PER CHAN ET AL. 2018, POSITIVE ONLY ####
-#is pos system segregation correlated with modularity or avg clustco?
-cor.test(master$modul,master$sys_segreg_posonly,method = "spearman")
-cor.test(master$avgclustco_both,master$sys_segreg_posonly,method = "spearman")
-
-#when controlling for other variables?
-temp<-cbind(master$ageAtScan1cent, as.factor(master$sex), as.factor(master$race2), master$avgweight, master$restRelMeanRMSMotion, as.factor(master$envSEShigh))
-library(ppcor)
-pcor.test(master$modul, master$sys_segreg_posonly, temp, method = "spearman")
-pcor.test(master$avgclustco_both, master$sys_segreg_posonly, temp, method = "spearman")
-
-#non-linear relationship with age?
-ageonlyRlrtmodel<-gamm(sys_segreg_posonly~s(ageAtScan1cent)+sex+race2+avgweight+restRelMeanRMSMotion+envSES, method='REML', data=master)$lme
-l<-exactRLRT(ageonlyRlrtmodel) #yes,there is.
-#What does it look like?
-l <- gam(sys_segreg_posonly~s(ageAtScan1cent)+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh, method='REML', data=master)
-summary(l)
-plot.gam(l)
-plotGAM(l, "ageAtScan1cent")
-visreg(l, "ageAtScan1cent")
-ggplot.model(l) #need script gam_plot_code to run
-
-#linear age effect without interaction
-l <- lm(sys_segreg ~ ageAtScan1yrs+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion, data=master)
-summary(l)
-lm.beta(l)
-
-#linear interaction model med split
-l2 <- lm(sys_segreg ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
-summary(l2)
-lm.beta(l2)
-#linear interaction model cont SES
-l2 <- lm(sys_segreg ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSES+ageAtScan1yrs*envSES, data=master)
-summary(l2)
-lm.beta(l2)
-
-#Non-linear model of age
-l <- gam(sys_segreg~s(ageAtScan1cent)+sex+race2+avgweight+restRelMeanRMSMotion+envSES, method='REML', data=master)
-summary(l)
-lm.beta(l)
-
-#Non-linear model of age, med split interaction
-l <- gam(sys_segreg~s(ageAtScan1cent)+s(ageAtScan1cent, by=envSEShigh)+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh, method='REML', data=master)
-summary(l)
-
-#Non-linear model of age, continuous interaction
-l <- gam(sys_segreg~s(ageAtScan1cent)+s(ageAtScan1cent, by=envSES)+sex+race2+avgweight+restRelMeanRMSMotion+envSES, method='REML', data=master)
-summary(l)
-#Looked at it with pbmodcomp elsewhere.
-
 ##############
 #### FIGURE 3 : YEO SYSTEMS ###
 ##############
@@ -334,7 +228,7 @@ summary(l)
 full_nodewise_clustco<-read.csv(paste0(clustcodir,"n1012_clust_co_nodewise_by_subj.csv"))
 full_nodewise_clustco<-dplyr::rename(full_nodewise_clustco, scanid=subjlist_2)
 full_nodewise_clustco<-right_join(full_nodewise_clustco,master,by="scanid")
-a<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/parcels/Glasser_to_Yeo.csv")
+a<-read.csv("~/Documents/projects/in_progress/tooleyEnviNetworks/parcels/Glasser_to_Yeo.csv")
 a$id<-gsub("^NZMod_", "", a$id)
 #remove parcel R52 which is low signal
 a<-a[-103,]
@@ -376,6 +270,7 @@ l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShig
 summary(l1)
 l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+yeo_sys*ageAtScan1yrscent, data=master_long)
 summary(l2)
+anova(l2) #significance of age * yeo interaction
 #compare a model with the interaction to one without
 lrtest(l1,l2)
 
@@ -416,11 +311,12 @@ write.csv(outfile, paste0(clustcodir, "yeo_network_betas_scaled.csv"))
 
 #### FOR AGE X SES BETAS ######
 #look at the agex SES effect and the age x SESx system interaction-do age effects differ across systems?
-l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+ageAtScan1yrscent*envSEShigh, data=master_long)
+l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+ageAtScan1yrscent:yeo_sys, data=master_long)
 summary(l1)
-l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrscent*envSEShigh*yeo_sys, data=master_long)
+l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrscent:yeo_sys:envSEShigh, data=master_long)
 summary(l2)
 anova(l1, l2)
+anova(l2)
 lrtest(l1,l2)
 #Yeo 1
 Yeo1_scaled <- lm(scale(Yeo_1) ~ scale(ageAtScan1cent)+sex+race2+scale(avgweight)+scale(restRelMeanRMSMotion)+scale(ageAtScan1cent)*envSEShigh, data=master)
