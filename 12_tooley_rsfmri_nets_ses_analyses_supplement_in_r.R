@@ -25,11 +25,11 @@ library(ppcor)
 #get files
 #Local personal computer
 setwd("~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/")
-subinfodir="~/Documents/bassett_lab/tooleyEnviNetworks/data/subjectData/"
-sublistdir="~/Documents/bassett_lab/tooleyEnviNetworks/subjectLists/"
-qadir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
-clustcodir="~/Dropbox (Personal)/bassett_lab/clustco_paper/"
-analysis_dir="~/Documents/bassett_lab/tooleyEnviNetworks/analyses/"
+subinfodir="~/Documents/projects/in_progress/tooleyEnviNetworks/data/subjectData/"
+sublistdir="~/Documents/projects/in_progress/tooleyEnviNetworks/subjectLists/"
+qadir="~/Documents/projects/in_progress/tooleyEnviNetworks/data/rest/"
+clustcodir="~/Dropbox (Personal)/projects/in_progress/tooleyenvinetworks/code/clustco_paper/"
+analysis_dir="~/Documents/projects/in_progress/tooleyEnviNetworks/analyses/"
 
 #Local mackey computer
 setwd("~/Documents/projects/in_progress/tooleyEnviNetworks/data/rest/")
@@ -283,6 +283,78 @@ lm.beta(l)
 l2 <- lm(sys_segreg_posonly ~ ageAtScan1yrs+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh+ageAtScan1yrs*envSEShigh, data=master)
 summary(l2)
 lm.beta(l2)
+
+#############################################
+#### PARTICIPATION COEFFICIENT ANALYSES ####
+############################################
+
+#Get the network stats file with all the different clustering coefficients
+file4<-read.csv("~/Dropbox (Personal)/projects/in_progress/tooleyEnviNetworks/data/n1012_sub_net_meas_signed_partcoefficient.csv")
+
+#rename the second column of the network statistics file to be 'scanid' so it matches below
+file4<-dplyr::rename(file4, scanid=subjlist_2)
+
+#Join all files together
+master<-right_join(file1, subjlist, by ="scanid")
+master<-right_join(file2,master, by="scanid")
+master<-right_join(file3, master, by= "scanid")
+master<-right_join(file4, master, by ="scanid")
+
+#eliminate extraneous columns
+master<-master %>% dplyr::select(., -c(restExcludeVoxelwise, restNoDataExclude))
+master<-master %>% dplyr::select(., -c(restRelMeanRMSMotionExclude:restRpsMapCorrectionNotApplied))
+master<-master %>% dplyr::select(., -c(bblid.y, bblid.x, bblid.y.y, subjlist_1))
+
+#make sure factor variables are factors
+master$race<-factor(master$race)
+master$race2<-factor(master$race2, labels=c("White", "Black", "Other"))
+master$sex<-factor(master$sex, labels=c("Male", "Female"))
+
+#make an age squared variable
+master$ageatscansqdem <- (master$ageAtScan1-mean(master$ageAtScan1))^2
+master$ageatscansq <- (master$ageAtScan1)^2
+master$ageAtScan1yrs<-(master$ageAtScan1)/12
+#split SES on the median 
+master$envSEShigh=NA
+master$envSEShigh[master$envSES >= 0.0178] <- 1
+master$envSEShigh[master$envSES < 0.0178]<- 0
+master$envSEShigh<-factor(master$envSEShigh, labels=c("Low", "High"), ordered=TRUE)
+
+#remove the outlier subj 3815
+#master<-master[master$scanid!=3815,]
+#should potentially be centering the age and envSES variables before looking at interactions
+master$ageAtScan1cent<-(master$ageAtScan1-mean(master$ageAtScan1))
+master$ageAtScan1yrscent<-(master$ageAtScan1yrs-mean(master$ageAtScan1yrs))
+master$envSEScent<-(master$envSES-mean(master$envSES))
+master$medu1cent=(master$medu1-mean(master$medu1[!is.na(master$medu1)]))
+#create parental education variable
+master$paredu1 <- master$medu1+master$fedu1
+master$paredu1cent=(master$paredu1-mean(master$paredu1[!is.na(master$paredu1)]))
+
+#add participation coefficients for positive and negative weights together
+master$yeo_part_coef_both <- master$yeo_part_coef_neg+master$yeo_part_coef_pos
+
+temp <- master %>% select(., yeo_part_coef_both, yeo_part_coef_pos, yeo_part_coef_neg, ageAtScan1yrscent, envSEScent, medu1cent)
+measures <- temp %>% names()
+#look at age effect here
+for (meas in measures){
+  name<-paste0("lm_age_",meas)
+  formula<-formula(paste0(meas, '~ ageAtScan1yrs+sex+race2+avgweight+envSES+restRelMeanRMSMotion'))
+  assign(name, lm(formula, data=master))
+}
+summary(lm_age_yeo_part_coef_both)
+summary(lm_age_yeo_part_coef_pos)
+summary(lm_age_yeo_part_coef_neg)
+
+#look at age effect in context of maternal education
+for (meas in measures){
+  name<-paste0("lm_age_",meas)
+  formula<-formula(paste0(meas, '~ ageAtScan1yrscent+sex+race2+avgweight+restRelMeanRMSMotion+envSEShigh*ageAtScan1yrscent'))
+  assign(name, lm(formula, data=master))
+}
+summary(lm_age_yeo_part_coef_both)
+summary(lm_age_yeo_part_coef_pos)
+summary(lm_age_yeo_part_coef_neg)
 
 ##############
 #### SUPP FIGURE 1 ####

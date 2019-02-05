@@ -53,7 +53,7 @@ envdata <- read.csv(paste0(subinfodir, "Census_for_Scores.csv"))
 #Get QA values to include in analyses
 file3<-read.csv(paste0(qadir, "n1601_RestQAData_20170509.csv"))
 #Get the network stats file with the different clustering coefficients
-file4<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_net_meas_normed3clustcoefs_signed.csv")
+file4<-read.csv(paste0(analysis_dir,"n1012_net_meas_normed3clustcoefs_signed.csv"))
 #get the original file with modularity in it
 file4<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/analyses/n1012_sub_net_meas_signed.csv")
 #rename the second column of the network statistics file to be 'scanid' so it matches the other files
@@ -224,7 +224,7 @@ summary(l)
 full_nodewise_clustco<-read.csv(paste0(clustcodir,"n1012_clust_co_nodewise_by_subj.csv"))
 full_nodewise_clustco<-dplyr::rename(full_nodewise_clustco, scanid=subjlist_2)
 full_nodewise_clustco<-right_join(full_nodewise_clustco,master,by="scanid")
-a<-read.csv("~/Documents/bassett_lab/tooleyEnviNetworks/parcels/Glasser_to_Yeo.csv")
+a<-read.csv("~/Documents/projects/in_progress/tooleyEnviNetworks/parcels/Glasser_to_Yeo.csv")
 a$id<-gsub("^NZMod_", "", a$id)
 #remove parcel R52 which is low signal
 a<-a[-103,]
@@ -253,7 +253,7 @@ master <- right_join(master, subject_clustco_yeo_system, by="scanid")
 ##### Test rather as an age x SES x system interaction, per Reviewer 3 ######
 
 #gather the rows of Yeo systems into one long column
-subject_clustco_yeo_system_long <- gather(subject_clustco_yeo_system, key="yeo_sys", value="avgclustco_both_yeosys", -scanid)
+subject_clustco_yeo_system_long <- tidyr::gather(subject_clustco_yeo_system, key="yeo_sys", value="avgclustco_both_yeosys", -scanid)
 #join to master data
 master_long <- right_join(master, subject_clustco_yeo_system_long, by="scanid")
 #make sure yeo system is a factor variable and not a character variable
@@ -266,6 +266,7 @@ l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShig
 summary(l1)
 l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+yeo_sys*ageAtScan1yrscent, data=master_long)
 summary(l2)
+anova(l2)
 #compare a model with the interaction to one without
 lrtest(l1,l2)
 
@@ -305,10 +306,11 @@ write.csv(outfile, paste0(clustcodir, "yeo_network_betas_scaled.csv"))
 
 #### FOR AGE X SES BETAS ######
 #look at the agex SES effect and the age x SESx system interaction-do age effects differ across systems?
-l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+ageAtScan1yrscent*envSEShigh, data=master_long)
+l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+ageAtScan1yrscent*yeo_sys, data=master_long)
 summary(l1)
-l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrscent*envSEShigh*yeo_sys, data=master_long)
+l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrscent*yeo_sys+ageAtScan1yrscent:envSEShigh:yeo_sys, data=master_long)
 summary(l2)
+anova(l2)
 anova(l1, l2)
 lrtest(l1,l2)
 

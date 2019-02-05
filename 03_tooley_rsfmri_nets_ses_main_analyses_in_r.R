@@ -39,7 +39,7 @@ setwd("~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/")
 subinfodir="~/Documents/bassett_lab/tooleyEnviNetworks/data/subjectData/"
 sublistdir="~/Documents/bassett_lab/tooleyEnviNetworks/subjectLists/"
 qadir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
-clustcodir="~/Dropbox/bassett_lab/clustco_paper/"
+clustcodir="~/Dropbox/projects/in_progress/tooleyEnviNetworks/output/"
 analysis_dir="~/Documents/bassett_lab/tooleyEnviNetworks/analyses/"
 reho_dir="~/Documents/bassett_lab/tooleyEnviNetworks/data/rest/"
 
@@ -257,7 +257,7 @@ master<-right_join(subject_clustco_yeo_system, master, by ="scanid")
 ##### Test rather as an age x SES x system interaction, per Reviewer 3 ######
 
 #gather the rows of Yeo systems into one long column
-subject_clustco_yeo_system_long <- gather(subject_clustco_yeo_system, key="yeo_sys", value="avgclustco_both_yeosys", -scanid)
+subject_clustco_yeo_system_long <- tidyr::gather(subject_clustco_yeo_system, key="yeo_sys", value="avgclustco_both_yeosys", -scanid)
 #join to master data
 master_long <- right_join(master, subject_clustco_yeo_system_long, by="scanid")
 #make sure yeo system is a factor variable and not a character variable
@@ -271,8 +271,6 @@ summary(l1)
 l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+yeo_sys*ageAtScan1yrscent, data=master_long)
 summary(l2)
 anova(l2) #significance of age * yeo interaction
-#compare a model with the interaction to one without
-lrtest(l1,l2)
 
 ### FOR AGE BETAS ####
 #Yeo 1
@@ -313,7 +311,7 @@ write.csv(outfile, paste0(clustcodir, "yeo_network_betas_scaled.csv"))
 #look at the agex SES effect and the age x SESx system interaction-do age effects differ across systems?
 l1 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+yeo_sys+ageAtScan1yrscent:yeo_sys, data=master_long)
 summary(l1)
-l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrscent:yeo_sys:envSEShigh, data=master_long)
+l2 <- lm(avgclustco_both_yeosys~ ageAtScan1yrscent+sex+race2+avgweight+envSEShigh+restRelMeanRMSMotion+ageAtScan1yrscent:yeo_sys+ageAtScan1yrscent:yeo_sys:envSEShigh, data=master_long)
 summary(l2)
 anova(l1, l2)
 anova(l2)
